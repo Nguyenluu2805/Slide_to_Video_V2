@@ -29,6 +29,7 @@ def run_full_pipeline(
     custom_scripts: Optional[list] = None,
     gemini_api_key: Optional[str] = None,
     voice_name: Optional[str] = None,
+    tts_rate: Optional[str] = None,
     enable_rvc: bool = False,
     output_filename: str = "output_video.mp4",
     on_progress: Optional[Callable[[str, int, str], None]] = None
@@ -54,8 +55,9 @@ def run_full_pipeline(
         log("Bước 2: Tạo Kịch Bản", 45, f"AI đã hoàn thành kịch bản sư phạm cho {len(scripts)} slide.")
 
     # Bước 3
-    log("Bước 3: Tổng Hợp Giọng Nói", 50, f"Đang tổng hợp audio bằng giọng đọc: {voice_name or config.TTS_VOICE} (Xử lý song song)...")
-    base_audio = run_tts_engine(scripts, voice_name=voice_name, on_progress=on_progress)
+    selected_rate = tts_rate or config.TTS_RATE or "-10%"
+    log("Bước 3: Tổng Hợp Giọng Nói", 50, f"Đang tổng hợp audio ({voice_name or config.TTS_VOICE} • Tốc độ: {selected_rate})...")
+    base_audio = run_tts_engine(scripts, voice_name=voice_name, rate=selected_rate, on_progress=on_progress)
     log("Bước 3: Tổng Hợp Giọng Nói", 70, f"Đã tạo hoàn chỉnh {len(base_audio)} file âm thanh lồng tiếng.")
 
     # Bước 4

@@ -42,7 +42,7 @@ EVERAI_API_KEY = os.getenv("EVERAI_API_KEY", "")
 # TTS_ENGINE: "edge-tts" (Microsoft Neural) or "gtts" (Google TTS fast)
 TTS_ENGINE = os.getenv("TTS_ENGINE", "edge-tts").lower()
 TTS_VOICE = os.getenv("TTS_VOICE", "vi-VN-NamMinhNeural")
-TTS_RATE = os.getenv("TTS_RATE", "-4%")
+TTS_RATE = os.getenv("TTS_RATE", "-10%")
 TTS_VOLUME = os.getenv("TTS_VOLUME", "+0%")
 
 # RVC (Voice Cloning) Configuration

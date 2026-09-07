@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description="AI Lecture Video Studio - CLI Pipeline Runner")
     parser.add_argument("--input", "-i", type=str, default="", help="Đường dẫn file bài giảng PowerPoint (.pptx)")
     parser.add_argument("--voice", "-v", type=str, default="", help="Mã giọng đọc TTS (vi-VN-NamMinhNeural, vi-VN-HoaiMyNeural, v.v.)")
+    parser.add_argument("--rate", "-r", type=str, default="-10%", help="Tốc độ giọng đọc (-10%, -15%, +0%, v.v.)")
     parser.add_argument("--enable-rvc", action="store_true", help="Kích hoạt Voice Cloning RVC trên GPU")
     parser.add_argument("--gemini-key", type=str, default="", help="API Key Google Gemini")
     parser.add_argument("--output", "-o", type=str, default="output_video.mp4", help="Tên file video đầu ra (.mp4)")
@@ -43,6 +44,7 @@ def main():
     print("🎬 KHỞI ĐỘNG AI LECTURE STUDIO PIPELINE")
     print(f"👉 File Slide: {pptx_path.name}")
     print(f"👉 Giọng đọc: {args.voice or config.TTS_VOICE}")
+    print(f"👉 Tốc độ đọc: {args.rate}")
     print(f"👉 Voice Cloning: {'BẬT' if args.enable_rvc else 'TẮT'}")
     print("=" * 60)
 
@@ -50,6 +52,7 @@ def main():
         pptx_path=pptx_path,
         gemini_api_key=args.gemini_key,
         voice_name=args.voice,
+        tts_rate=args.rate,
         enable_rvc=args.enable_rvc,
         output_filename=args.output
     )

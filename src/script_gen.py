@@ -88,34 +88,33 @@ def generate_rich_offline_script(slides_data: List[Dict[str, Any]]) -> List[Dict
 
         paragraphs = []
         
-        # 1. Câu dẫn nhập đề
+        # 1. Câu dẫn nhập đề có nhịp nghỉ lấy hơi
         if idx == 1:
-            paragraphs.append(f"Chào mừng các bạn đến với bài học hôm nay. Chúng ta sẽ cùng nhau tìm hiểu về chủ đề: {title}.")
+            paragraphs.append(f"Chào mừng tất cả các bạn... đã đến với bài học hôm nay! Trong bài giảng này, chúng ta sẽ cùng nhau tìm hiểu một chủ đề rất quan trọng: {title}.")
         elif idx == total:
-            paragraphs.append(f"Để khép lại bài học, chúng ta cùng đi đến phần tổng kết về: {title}.")
+            paragraphs.append(f"Để khép lại bài học hôm nay... chúng ta cùng đi đến phần tổng kết và đúc kết về: {title}!")
         else:
-            paragraphs.append(f"Tiếp theo, chúng ta cùng chuyển sang phần: {title}.")
+            paragraphs.append(f"Tiếp theo... chúng ta cùng chuyển sang phần trọng tâm: {title}.")
 
         # 2. Ghi chú diễn giả (nếu có)
         if notes:
             cleaned_notes = re.sub(r'[\*\#\_•✓⚡◈Σ]', '', notes).strip()
             if len(cleaned_notes) > 5:
-                paragraphs.append(f"Cụ thể, {cleaned_notes}.")
+                paragraphs.append(f"Cụ thể... {cleaned_notes}.")
 
-        # 3. Lọc và tổng hợp các ý chính (loại bỏ ký tự rác / ký hiệu đơn)
+        # 3. Lọc và tổng hợp các ý chính với câu nối nhịp nhàng
         meaningful_bullets = []
         for b in bullets:
             cleaned = re.sub(r'^[\d\.\-\•\*\#\_\✓\⚡\◈\Σ\s]+', '', b).strip()
-            # Bỏ qua các chuỗi quá ngắn hoặc chỉ là ký hiệu code đơn thuần
             if len(cleaned) >= 3 and not re.match(r'^[\[\]\{\}\#\_\~\^\*\|\>\<\=\+]+$', cleaned):
                 meaningful_bullets.append(cleaned)
 
-        # Lấy tối đa 4 ý tiêu biểu nhất để bài giảng vừa vặn, không bị dài lê thê
+        # Lấy tối đa 4 ý tiêu biểu nhất với các liên từ nhấn nhá
         connectors = [
-            "Điểm trọng tâm đầu tiên cần chú ý là",
-            "Bên cạnh đó",
-            "Đồng thời",
-            "Và cuối cùng là"
+            "Trước hết... điểm cốt lõi đầu tiên các bạn cần lưu ý là",
+            "Bên cạnh đó... một yếu tố đặc biệt quan trọng tiếp theo chính là",
+            "Đồng thời... để triển khai và áp dụng tối ưu",
+            "Và cuối cùng... các bạn hãy ghi nhớ rằng"
         ]
         
         for i, b in enumerate(meaningful_bullets[:4]):
@@ -124,13 +123,13 @@ def generate_rich_offline_script(slides_data: List[Dict[str, Any]]) -> List[Dict
                 b = b[:-1]
             first_char = b[0].lower() if len(b) > 1 else b
             rest = b[1:] if len(b) > 1 else ""
-            paragraphs.append(f"{conn} {first_char}{rest}.")
+            paragraphs.append(f"{conn}, {first_char}{rest}.")
 
-        # 4. Câu chốt slide
+        # 4. Câu chốt slide nhấn mạnh
         if idx == total:
-            paragraphs.append("Cảm ơn các bạn đã chú ý theo dõi và chúc các bạn học tập thật tốt!")
+            paragraphs.append("Hi vọng bài học đã mang lại nhiều kiến thức bổ ích. Cảm ơn các bạn đã chú ý lắng nghe và chúc các bạn học tập thật tốt!")
         else:
-            paragraphs.append("Các bạn hãy ghi nhớ điểm này trước khi chúng ta tiếp tục sang slide kế tiếp.")
+            paragraphs.append("Các bạn hãy ghi nhớ điểm mấu chốt này... trước khi chúng ta tiếp tục sang slide kế tiếp nhé!")
 
         scripts.append({
             "slide_index": idx,

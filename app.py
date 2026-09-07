@@ -174,6 +174,7 @@ def start_pipeline():
     custom_scripts = data.get("custom_scripts", None)
     gemini_key = data.get("gemini_api_key", "").strip()
     voice = data.get("voice", "vi-VN-NamMinhNeural")
+    tts_rate = data.get("rate", "-10%")
     enable_rvc = bool(data.get("enable_rvc", False))
 
     pptx_path = config.INPUT_DIR / filename
@@ -198,6 +199,7 @@ def start_pipeline():
                 custom_scripts=custom_scripts,
                 gemini_api_key=gemini_key,
                 voice_name=voice,
+                tts_rate=tts_rate,
                 enable_rvc=enable_rvc,
                 output_filename="output_video.mp4",
                 on_progress=broadcast_progress

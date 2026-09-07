@@ -21,8 +21,10 @@ except (ImportError, ValueError):
 EVERAI_BASE_URL = "https://www.everai.vn/api/v1/tts"
 
 
+import subprocess
+
 def clean_text_for_tts(text: str) -> str:
-    """Chuẩn hóa văn bản, làm sạch ký tự đặc biệt, dấu gạch nối và ký hiệu code/toán học để giọng đọc mượt mà."""
+    """Chuẩn hóa văn bản, làm sạch ký tự đặc biệt, dấu gạch nối và ký hiệu code/toán học để giọng đọc mượt mà, ngắt nghỉ sư phạm."""
     if not text:
         return "Nội dung slide bài giảng."
 
@@ -53,8 +55,31 @@ def clean_text_for_tts(text: str) -> str:
     text = re.sub(r'\b([A-Za-z])\.([A-Za-z])\.([A-Za-z])\b', r'\1\2\3', text)
     text = re.sub(r'\b([A-Za-z])\.([A-Za-z])\b', r'\1\2', text)
 
-    # Loại bỏ code blocks, markdown symbols, dấu ngoặc rỗng
-    text = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\/\\\|\~\^\@\$\!\?]', ' ', text)
+    # Loại bỏ code blocks, markdown symbols, dấu ngoặc
+    text = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\/\\\|\~\^\@\$]', ' ', text)
+
+    # Tách dấu chấm trong tên biến/thư viện (ví dụ numpy.array -> numpy array, .shape -> shape)
+    text = re.sub(r'(?<=\w)\.(?=\w)', ' ', text)
+    text = re.sub(r'\.(?=[a-zA-Z])', ' ', text)
+
+    # Bảo vệ dấu chấm lửng
+    text = re.sub(r'\.{3,}', ' ___PAUSE___ ', text)
+    text = text.replace('…', ' ___PAUSE___ ')
+
+    # Chuẩn hóa khoảng trắng quanh dấu câu
+    text = re.sub(r'\s*,\s*', ', ', text)
+    text = re.sub(r'\s*\.\s*', '. ', text)
+    text = re.sub(r'\s*!\s*', '! ', text)
+    text = re.sub(r'\s*\?\s*', '? ', text)
+
+    # Khôi phục dấu ngắt nhịp
+    text = re.sub(r'\s*___PAUSE___\s*', ', ', text)
+
+    # Tránh lặp dấu phẩy hoặc chấm thừa
+    text = re.sub(r',\s*,+', ', ', text)
+    text = re.sub(r'\.\s*\.+', '. ', text)
+    text = re.sub(r',\s*\.', '.', text)
+    text = re.sub(r'\.\s*,', ',', text)
     text = re.sub(r'\s+', ' ', text).strip()
 
     if len(text) < 3:
@@ -72,40 +97,80 @@ def synthesize_gtts_fallback(text: str, output_path: Path) -> bool:
     return True
 
 
-async def synthesize_edge_tts(text: str, voice: str, output_path: Path, max_retries: int = 3) -> bool:
-    """Tổng hợp giọng bằng Microsoft Neural TTS (Edge TTS) với cơ chế atomic write và auto-retry."""
+async def _synthesize_single_unit(text: str, voice: str, out_path: Path, desired_rate: str = "-10%") -> bool:
+    """Thử tổng hợp một câu/đoạn qua EdgeTTS với các mức tốc độ dự phòng nếu Azure từ chối."""
     import edge_tts
+    rates_to_try = [desired_rate, "-5%", "+0%", None]
+    tmp_path = out_path.with_suffix(".tmp.mp3")
 
-    cleaned = clean_text_for_tts(text)
-    rate = config.TTS_RATE or "+0%"
-    volume = config.TTS_VOLUME or "+0%"
-    tmp_path = output_path.with_suffix(".tmp.mp3")
-
-    last_err = None
-    for attempt in range(1, max_retries + 1):
+    for r in rates_to_try:
         if tmp_path.exists():
             try: tmp_path.unlink()
             except Exception: pass
-
         try:
-            communicate = edge_tts.Communicate(text=cleaned, voice=voice, rate=rate, volume=volume)
-            await asyncio.wait_for(communicate.save(str(tmp_path.resolve())), timeout=45.0)
-            if tmp_path.exists() and tmp_path.stat().st_size > 512:
-                if output_path.exists():
-                    try: output_path.unlink()
+            kw = {"rate": r} if r else {}
+            comm = edge_tts.Communicate(text=text, voice=voice, **kw)
+            await asyncio.wait_for(comm.save(str(tmp_path.resolve())), timeout=35.0)
+            if tmp_path.exists() and tmp_path.stat().st_size > 256:
+                if out_path.exists():
+                    try: out_path.unlink()
                     except Exception: pass
-                tmp_path.rename(output_path)
+                tmp_path.rename(out_path)
                 return True
-        except Exception as e:
-            last_err = e
-            if attempt < max_retries:
-                await asyncio.sleep(1.0 * attempt)
+        except Exception:
+            await asyncio.sleep(0.3)
 
     if tmp_path.exists():
         try: tmp_path.unlink()
         except Exception: pass
+    return False
 
-    raise last_err or RuntimeError(f"Không thể sinh âm thanh EdgeTTS sau {max_retries} lần thử.")
+
+async def synthesize_edge_tts(text: str, voice: str, output_path: Path, rate: str = None, volume: str = None) -> bool:
+    """Tổng hợp giọng bằng Microsoft Neural TTS (Edge TTS) với kiến trúc bảo toàn giọng đọc và chống lỗi server Azure."""
+    cleaned = clean_text_for_tts(text)
+    rate_val = rate or config.TTS_RATE or "-10%"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Tầng 1: Thử đọc toàn bộ nội dung slide
+    if await _synthesize_single_unit(cleaned, voice, output_path, desired_rate=rate_val):
+        return True
+
+    # Tầng 2: Nếu câu quá dài bị Azure từ chối, phân đoạn theo câu tự nhiên và ghép nối mượt mà
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', cleaned) if len(s.strip()) > 1]
+    if not sentences:
+        sentences = [cleaned]
+
+    temp_files = []
+    try:
+        for i, sent in enumerate(sentences):
+            temp_p = output_path.parent / f"{output_path.stem}_part_{i:02d}.mp3"
+            ok = await _synthesize_single_unit(sent, voice, temp_p, desired_rate=rate_val)
+            if not ok:
+                raise RuntimeError(f"Azure TTS không thể tổng hợp câu: '{sent[:30]}...'")
+            temp_files.append(temp_p)
+            await asyncio.sleep(0.1)
+
+        # Ghép các đoạn câu lại bằng FFmpeg copy stream (không mất chất lượng, tốc độ tức thì)
+        concat_txt = output_path.parent / f"{output_path.stem}_concat.txt"
+        with open(concat_txt, "w", encoding="utf-8") as f:
+            for tf in temp_files:
+                f.write(f"file '{tf.name}'\n")
+
+        cmd = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+            "-i", str(concat_txt.resolve()),
+            "-c", "copy", str(output_path.resolve())
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"FFmpeg concat failed: {res.stderr}")
+
+        return True
+    finally:
+        for tf in temp_files:
+            tf.unlink(missing_ok=True)
+        (output_path.parent / f"{output_path.stem}_concat.txt").unlink(missing_ok=True)
 
 
 def synthesize_everai(
@@ -131,7 +196,7 @@ def synthesize_everai(
         "model_id": "everai-v1.6",
         "audio_type": "mp3",
         "bitrate": 128,
-        "speed_rate": 1.0,
+        "speed_rate": 0.92,
         "pitch_rate": 1.0
     }
 
@@ -174,6 +239,7 @@ def synthesize_everai(
 async def synthesize_all_audio_async(
     scripts: List[Dict[str, Any]], 
     voice_name: str = None,
+    rate: str = None,
     on_progress: Any = None
 ) -> List[Dict[str, Any]]:
     """Tổng hợp toàn bộ âm thanh mới cho các slide với cập nhật tiến độ liên tục."""
@@ -185,6 +251,7 @@ async def synthesize_all_audio_async(
         except Exception: pass
 
     selected_voice = voice_name or config.TTS_VOICE or "vi-VN-NamMinhNeural"
+    selected_rate = rate or config.TTS_RATE or "-10%"
     is_everai = selected_voice.startswith("voice-") or selected_voice.startswith("vi_")
 
     audio_records = []
@@ -198,7 +265,7 @@ async def synthesize_all_audio_async(
             if is_everai:
                 synthesize_everai(item["script"], audio_file, voice_code=selected_voice)
             else:
-                await synthesize_edge_tts(item["script"], selected_voice, audio_file)
+                await synthesize_edge_tts(item["script"], selected_voice, audio_file, rate=selected_rate)
         except Exception as e:
             print(f"[!] Cảnh báo Slide {idx} ({e}). Đang tự động chuyển sang gTTS fallback...")
             try:
@@ -222,7 +289,7 @@ async def synthesize_all_audio_async(
     return audio_records
 
 
-def run_tts_engine(scripts: List[Dict[str, Any]] = None, voice_name: str = None, on_progress: Any = None) -> List[Dict[str, Any]]:
+def run_tts_engine(scripts: List[Dict[str, Any]] = None, voice_name: str = None, rate: str = None, on_progress: Any = None) -> List[Dict[str, Any]]:
     """Hàm thực thi chính cho Bước 3: Tổng hợp Audio TTS"""
     if scripts is None:
         script_file = config.WORKSPACE_DIR / "script.json"
@@ -231,7 +298,7 @@ def run_tts_engine(scripts: List[Dict[str, Any]] = None, voice_name: str = None,
         with open(script_file, "r", encoding="utf-8") as f:
             scripts = json.load(f)
 
-    audio_records = asyncio.run(synthesize_all_audio_async(scripts, voice_name=voice_name, on_progress=on_progress))
+    audio_records = asyncio.run(synthesize_all_audio_async(scripts, voice_name=voice_name, rate=rate, on_progress=on_progress))
 
     output_meta = config.WORKSPACE_DIR / "base_audio_meta.json"
     with open(output_meta, "w", encoding="utf-8") as f:
