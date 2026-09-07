@@ -360,7 +360,7 @@
                     </div>
                 </div>
 
-                <!-- Live Pipeline Stepper -->
+                <!-- Live Pipeline Stepper with Per-Stage Timers -->
                 <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-3.5">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
@@ -370,9 +370,15 @@
                             </svg>
                             <h2 class="text-xs font-bold text-white uppercase tracking-wider">Tiến Trình Xử Lý Pipeline</h2>
                         </div>
-                        <span id="pipeline-status-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                            Sẵn sàng
-                        </span>
+                        <div class="flex items-center space-x-2">
+                            <span id="pipeline-live-timer" class="hidden px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center space-x-1">
+                                <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span id="pipeline-live-timer-text">0.0s</span>
+                            </span>
+                            <span id="pipeline-status-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                                Sẵn sàng
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Progress Bar -->
@@ -380,27 +386,65 @@
                         <div id="progress-bar" class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 w-0"></div>
                     </div>
 
-                    <!-- 5 Steps Indicators -->
+                    <!-- 5 Steps Indicators with Real-time Duration Badges -->
                     <div class="grid grid-cols-5 gap-2 text-center text-xs">
-                        <div id="step-badge-1" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-colors">
+                        <div id="step-badge-1" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
                             <div class="font-bold text-[11px] mb-0.5">BƯỚC 1</div>
-                            <div class="text-[10px] truncate">Slide Extract</div>
+                            <div class="text-[10px] truncate">Trích xuất</div>
+                            <div id="step-time-1" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
                         </div>
-                        <div id="step-badge-2" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-colors">
+                        <div id="step-badge-2" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
                             <div class="font-bold text-[11px] mb-0.5">BƯỚC 2</div>
-                            <div class="text-[10px] truncate">AI Script</div>
+                            <div class="text-[10px] truncate">Kịch bản AI</div>
+                            <div id="step-time-2" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
                         </div>
-                        <div id="step-badge-3" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-colors">
+                        <div id="step-badge-3" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
                             <div class="font-bold text-[11px] mb-0.5">BƯỚC 3</div>
-                            <div class="text-[10px] truncate">TTS Voice</div>
+                            <div class="text-[10px] truncate">Lồng tiếng TTS</div>
+                            <div id="step-time-3" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
                         </div>
-                        <div id="step-badge-4" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-colors">
+                        <div id="step-badge-4" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
                             <div class="font-bold text-[11px] mb-0.5">BƯỚC 4</div>
-                            <div class="text-[10px] truncate">Voice RVC</div>
+                            <div class="text-[10px] truncate">Tối ưu Âm sắc</div>
+                            <div id="step-time-4" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
                         </div>
-                        <div id="step-badge-5" class="p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-colors">
+                        <div id="step-badge-5" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
                             <div class="font-bold text-[11px] mb-0.5">BƯỚC 5</div>
-                            <div class="text-[10px] truncate">Render MP4</div>
+                            <div class="text-[10px] truncate">Render Video</div>
+                            <div id="step-time-5" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng Chi Tiết Thời Gian Từng Giai Đoạn (Stage Execution Time Breakdown) -->
+                    <div id="timing-summary-card" class="hidden p-3 rounded-xl bg-dark-950/90 border border-slate-800 text-xs space-y-2">
+                        <div class="flex items-center justify-between font-bold text-slate-300 pb-1.5 border-b border-slate-800/80">
+                            <span class="flex items-center space-x-1.5 text-sky-400">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                <span>Thời gian gen theo từng giai đoạn</span>
+                            </span>
+                            <span id="timing-total-badge" class="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Tổng: --</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5 font-mono text-[11px]">
+                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400 text-[10px]">1. Trích xuất Slide</div>
+                                <div id="summary-time-1" class="font-bold text-slate-300 mt-0.5">--</div>
+                            </div>
+                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400 text-[10px]">2. Kịch bản AI</div>
+                                <div id="summary-time-2" class="font-bold text-slate-300 mt-0.5">--</div>
+                            </div>
+                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400 text-[10px]">3. Lồng tiếng TTS</div>
+                                <div id="summary-time-3" class="font-bold text-slate-300 mt-0.5">--</div>
+                            </div>
+                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400 text-[10px]">4. Tối ưu Âm sắc</div>
+                                <div id="summary-time-4" class="font-bold text-slate-300 mt-0.5">--</div>
+                            </div>
+                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
+                                <div class="text-slate-400 text-[10px]">5. Render MP4</div>
+                                <div id="summary-time-5" class="font-bold text-slate-300 mt-0.5">--</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -687,6 +731,34 @@
             logTerminal.innerHTML = '<div class="text-sky-400">> Đã xóa toàn bộ nhật ký console.</div>';
         }
 
+        let pipelineStartTime = null;
+        let pipelineTimerInterval = null;
+
+        function startLiveTimer() {
+            pipelineStartTime = Date.now();
+            const timerPill = document.getElementById('pipeline-live-timer');
+            const timerText = document.getElementById('pipeline-live-timer-text');
+            if (timerPill) timerPill.classList.remove('hidden');
+            
+            if (pipelineTimerInterval) clearInterval(pipelineTimerInterval);
+            pipelineTimerInterval = setInterval(() => {
+                if (!pipelineStartTime) return;
+                const elapsedSec = ((Date.now() - pipelineStartTime) / 1000).toFixed(1);
+                if (timerText) timerText.innerText = `${elapsedSec}s`;
+            }, 100);
+        }
+
+        function stopLiveTimer(finalFormatted) {
+            if (pipelineTimerInterval) {
+                clearInterval(pipelineTimerInterval);
+                pipelineTimerInterval = null;
+            }
+            const timerText = document.getElementById('pipeline-live-timer-text');
+            if (timerText && finalFormatted) {
+                timerText.innerText = finalFormatted;
+            }
+        }
+
         function connectSSE() {
             if (eventSource) eventSource.close();
             eventSource = new EventSource('/api/progress-stream');
@@ -699,18 +771,34 @@
                 if (data.log) {
                     appendLog(data.log);
                 }
-                if (data.step) {
-                    updateStepBadges(data.step);
+                if (data.timings) {
+                    renderTimings(data.timings, data.step);
                 }
+                if (data.step) {
+                    updateStepBadges(data.step, data.timings);
+                }
+
+                const summaryCard = document.getElementById('timing-summary-card');
+
                 if (data.status === 'completed' && data.video) {
                     showCompletedVideo(data.video);
+                    stopLiveTimer(data.timings ? data.timings.total_formatted : null);
                     pipelineStatusBadge.innerText = 'Hoàn thành 100%';
                     pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                    showToast({ title: '🎉 Tạo Video Hoàn Tất!', message: `Video bài giảng 1080p đã xuất xưởng: ${data.video}`, type: 'success', duration: 7000 });
+                    if (summaryCard) summaryCard.classList.remove('hidden');
+                    showToast({ 
+                        title: '🎉 Tạo Video Hoàn Tất!', 
+                        message: `Render thành công 1080p (${data.timings ? data.timings.total_formatted : ''}): ${data.video}`, 
+                        type: 'success', 
+                        duration: 7000 
+                    });
                 } else if (data.status === 'running') {
+                    if (!pipelineTimerInterval) startLiveTimer();
+                    if (summaryCard) summaryCard.classList.remove('hidden');
                     pipelineStatusBadge.innerText = `Đang chạy: ${data.step}`;
                     pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30 animate-pulse';
                 } else if (data.status === 'error') {
+                    stopLiveTimer();
                     pipelineStatusBadge.innerText = 'Có lỗi xảy ra';
                     pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
                     showToast({ title: 'Tiến trình thất bại', message: data.log || 'Có lỗi xảy ra trong quá trình xử lý.', type: 'error', duration: 6000 });
@@ -718,7 +806,45 @@
             };
         }
 
-        function updateStepBadges(currentStep) {
+        function renderTimings(timings, currentStep) {
+            if (!timings) return;
+
+            const totalBadge = document.getElementById('timing-total-badge');
+            if (totalBadge && timings.total_formatted) {
+                totalBadge.innerText = `Tổng: ${timings.total_formatted}`;
+            }
+
+            for (let i = 1; i <= 5; i++) {
+                const stepKey = `step_${i}`;
+                const stepInfo = timings[stepKey];
+                const stepTimeEl = document.getElementById(`step-time-${i}`);
+                const summaryTimeEl = document.getElementById(`summary-time-${i}`);
+
+                if (stepInfo) {
+                    let displayTime = stepInfo.formatted || '--';
+                    if (stepInfo.status === 'completed') {
+                        if (stepTimeEl) {
+                            stepTimeEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${displayTime}</span>`;
+                        }
+                        if (summaryTimeEl) {
+                            summaryTimeEl.innerHTML = `<span class="text-emerald-400 font-bold">${displayTime}</span>`;
+                        }
+                    } else if (stepInfo.status === 'running') {
+                        if (stepTimeEl) {
+                            stepTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">⏳ Đang xử lý</span>`;
+                        }
+                        if (summaryTimeEl) {
+                            summaryTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">Đang chạy...</span>`;
+                        }
+                    } else {
+                        if (stepTimeEl) stepTimeEl.innerText = '--';
+                        if (summaryTimeEl) summaryTimeEl.innerText = '--';
+                    }
+                }
+            }
+        }
+
+        function updateStepBadges(currentStep, timings) {
             const stepMap = {
                 'Bước 1': 1,
                 'Bước 2': 2,
@@ -735,15 +861,19 @@
                 }
             }
 
+            if (currentStep.includes('Hoàn Thành')) {
+                activeIndex = 6;
+            }
+
             for (let i = 1; i <= 5; i++) {
                 const el = document.getElementById(`step-badge-${i}`);
                 if (!el) continue;
-                if (i < activeIndex) {
-                    el.className = 'p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold';
+                if (i < activeIndex || (activeIndex === 6)) {
+                    el.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold flex flex-col justify-between';
                 } else if (i === activeIndex) {
-                    el.className = 'p-2 rounded-xl bg-sky-500/20 border border-sky-500/50 text-sky-300 font-bold glow-primary';
+                    el.className = 'p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/50 text-sky-300 font-bold glow-primary flex flex-col justify-between';
                 } else {
-                    el.className = 'p-2 rounded-xl bg-dark-900 border border-slate-800 text-slate-500';
+                    el.className = 'p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 flex flex-col justify-between';
                 }
             }
         }

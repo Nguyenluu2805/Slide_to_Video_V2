@@ -41,27 +41,44 @@ VOICE_SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Trạng thái tiến trình toàn cục
 log_queues = []
+
+def get_initial_timings():
+    return {
+        "step_1": {"name": "Trích xuất Slide", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_2": {"name": "Tạo Kịch Bản", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_3": {"name": "Tổng Hợp Giọng Nói", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_4": {"name": "Chuyển Đổi Âm Sắc", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_5": {"name": "Render Video 1080p", "duration": 0.0, "status": "pending", "formatted": ""},
+        "total_duration": 0.0,
+        "total_formatted": "0.0s"
+    }
+
 current_job = {
     "status": "idle",
     "progress": 0,
     "current_step": "",
     "log": [],
     "output_video": "",
-    "error_message": ""
+    "error_message": "",
+    "timings": get_initial_timings(),
+    "start_time": 0.0
 }
 
-def broadcast_progress(step_name: str, progress_percent: int, log_line: str):
-    """Phát tin nhắn tiến trình qua Server-Sent Events (SSE)."""
+def broadcast_progress(step_name: str, progress_percent: int, log_line: str, timings: dict = None):
+    """Phát tin nhắn tiến trình kèm dữ liệu thời gian qua Server-Sent Events (SSE)."""
     current_job["current_step"] = step_name
     current_job["progress"] = progress_percent
     current_job["log"].append(log_line)
+    if timings:
+        current_job["timings"] = timings
 
     msg = json.dumps({
         "step": step_name,
         "progress": progress_percent,
         "log": log_line,
         "status": current_job["status"],
-        "video": current_job["output_video"]
+        "video": current_job["output_video"],
+        "timings": current_job["timings"]
     }, ensure_ascii=False)
 
     for q in list(log_queues):
@@ -191,6 +208,8 @@ def start_pipeline():
     current_job["log"] = []
     current_job["error_message"] = ""
     current_job["output_video"] = ""
+    current_job["timings"] = get_initial_timings()
+    current_job["start_time"] = time.time()
 
     def worker():
         try:
@@ -206,11 +225,13 @@ def start_pipeline():
             )
             current_job["status"] = "completed"
             current_job["output_video"] = out_video.name
-            broadcast_progress("Hoàn Thành", 100, f"Đã tạo video hoàn tất: {out_video.name}")
+            if hasattr(out_video, "timings"):
+                current_job["timings"] = getattr(out_video, "timings")
+            broadcast_progress("Hoàn Thành", 100, f"Đã tạo video hoàn tất: {out_video.name}", timings=current_job["timings"])
         except Exception as e:
             current_job["status"] = "error"
             current_job["error_message"] = str(e)
-            broadcast_progress("Lỗi", 0, f"Lỗi xảy ra trong quá trình xử lý: {str(e)}")
+            broadcast_progress("Lỗi", 0, f"Lỗi xảy ra trong quá trình xử lý: {str(e)}", timings=current_job["timings"])
 
     threading.Thread(target=worker, daemon=True).start()
     return jsonify({"success": True, "message": "Tiến trình tạo video đã được khởi động!"})
@@ -227,7 +248,8 @@ def progress_stream():
                 "progress": current_job["progress"],
                 "log": "Đã kết nối luồng trạng thái thời gian thực...",
                 "status": current_job["status"],
-                "video": current_job["output_video"]
+                "video": current_job["output_video"],
+                "timings": current_job["timings"]
             }, ensure_ascii=False)
             yield f"data: {init_msg}\n\n"
 
