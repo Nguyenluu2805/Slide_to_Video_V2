@@ -96,7 +96,7 @@ def clone_voice_spectral(source_audio: Path, reference_audio: Path, output_audio
 def run_voice_cloner(audio_records: List[Dict[str, Any]] = None, enable_rvc: bool = False) -> List[Dict[str, Any]]:
     """Hàm thực thi chính cho Bước 4: Voice Cloning (Mặc định tắt nếu người dùng không chọn)"""
     config.FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    for old_file in config.FINAL_AUDIO_DIR.glob("final_slide_*.mp3"):
+    for old_file in list(config.FINAL_AUDIO_DIR.glob("final_slide_*.mp3")) + list(config.FINAL_AUDIO_DIR.glob("final_code_demo_*.mp3")):
         try: old_file.unlink()
         except Exception: pass
 
@@ -124,13 +124,26 @@ def run_voice_cloner(audio_records: List[Dict[str, Any]] = None, enable_rvc: boo
         else:
             shutil.copy2(src_audio, dst_audio)
 
-        final_records.append({
+        rec = {
             "slide_index": idx,
             "title": item["title"],
             "script": item["script"],
             "audio_path": str(dst_audio.resolve()),
-            "image_path": str((config.IMAGES_DIR / f"slide_{idx:03d}.png").resolve())
-        })
+            "image_path": str((config.IMAGES_DIR / f"slide_{idx:03d}.png").resolve()),
+            "has_code_demo": item.get("has_code_demo", False)
+        }
+        if item.get("has_code_demo") and item.get("code_demo"):
+            rec["code_demo"] = item["code_demo"]
+            if "code_audio_path" in item and Path(item["code_audio_path"]).exists():
+                src_code_audio = Path(item["code_audio_path"])
+                dst_code_audio = config.FINAL_AUDIO_DIR / f"final_code_demo_{idx:03d}.mp3"
+                if use_clone:
+                    clone_voice_spectral(src_code_audio, reference_sample, dst_code_audio)
+                else:
+                    shutil.copy2(src_code_audio, dst_code_audio)
+                rec["code_audio_path"] = str(dst_code_audio.resolve())
+
+        final_records.append(rec)
 
     output_meta = config.WORKSPACE_DIR / "final_audio_meta.json"
     with open(output_meta, "w", encoding="utf-8") as f:

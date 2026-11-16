@@ -21,6 +21,7 @@ IMAGES_DIR = WORKSPACE_DIR / "images"
 BASE_AUDIO_DIR = WORKSPACE_DIR / "base_audio"
 FINAL_AUDIO_DIR = WORKSPACE_DIR / "final_audio"
 OUTPUT_DIR = PROJECT_ROOT / "output"
+CODE_DEMO_DIR = PROJECT_ROOT / "code_demo_ai"
 
 # Load environment variables
 load_dotenv(PROJECT_ROOT / ".env")

@@ -39,11 +39,12 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 EVERAI_API_KEY = os.getenv("EVERAI_API_KEY", "")
 
 # TTS Configuration
-# TTS_ENGINE: "edge-tts" (Microsoft Neural) or "gtts" (Google TTS fast)
+# TTS_ENGINE: "edge-tts" (Microsoft Neural), "zerotts" (ZeroTTS ONNX CPU), or "gtts" (Google TTS)
 TTS_ENGINE = os.getenv("TTS_ENGINE", "edge-tts").lower()
 TTS_VOICE = os.getenv("TTS_VOICE", "vi-VN-NamMinhNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")
 TTS_VOLUME = os.getenv("TTS_VOLUME", "+0%")
+ZEROTTS_MODEL = os.getenv("ZEROTTS_MODEL", "zeroweight-ai/ZeroTTS")
 
 # RVC (Voice Cloning) Configuration
 RVC_MODEL_PATH = os.getenv("RVC_MODEL_PATH", str(MODELS_DIR / "my_voice.pth"))
@@ -57,4 +58,6 @@ RVC_DEVICE = os.getenv("RVC_DEVICE", "cuda:0")
 VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1920"))
 VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1080"))
 VIDEO_FPS = int(os.getenv("VIDEO_FPS", "24"))
-SLIDE_PAUSE_DURATION = float(os.getenv("SLIDE_PAUSE_DURATION", "0.6"))
+SLIDE_PRE_PAUSE = float(os.getenv("SLIDE_PRE_PAUSE", "0.8"))    # Dừng 0.8s ở đầu mỗi slide trước khi đọc
+SLIDE_POST_PAUSE = float(os.getenv("SLIDE_POST_PAUSE", "1.5"))  # Dừng 1.5s ở cuối slide sau khi đọc xong
+SLIDE_PAUSE_DURATION = SLIDE_PRE_PAUSE + SLIDE_POST_PAUSE       # Tổng thời gian chuyển slide (~2.3s)

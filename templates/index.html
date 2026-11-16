@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Lecture Video Studio | Biến PPTX thành Video Bài Giảng</title>
+    <!-- Brand Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -34,13 +36,13 @@
     <style>
         body { background-color: #07090e; color: #f1f5f9; }
         .glass-panel {
-            background: rgba(13, 17, 26, 0.8);
+            background: rgba(13, 17, 26, 0.82);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .glow-primary {
-            box-shadow: 0 0 25px -4px rgba(14, 165, 233, 0.3);
+            box-shadow: 0 0 25px -4px rgba(14, 165, 233, 0.35);
         }
         .glow-accent {
             box-shadow: 0 0 25px -4px rgba(99, 102, 241, 0.3);
@@ -66,6 +68,165 @@
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased text-slate-100 selection:bg-sky-500 selection:text-white">
 
+    <!-- ========================================== -->
+    <!-- CUSTOM SVG ICON SPRITE DEFINITIONS         -->
+    <!-- Monoline 1.75px Stroke System (24x24)      -->
+    <!-- ========================================== -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <!-- 1. Studio Logo -->
+        <symbol id="icon-studio-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="13" rx="2.5" />
+            <path d="M10 8.5l5 3-5 3v-6z" fill="currentColor" stroke="none" />
+            <path d="M8 21h8m-4-4v4" />
+        </symbol>
+
+        <!-- 2. Presentation Slide Deck -->
+        <symbol id="icon-slide-deck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="13" rx="2" />
+            <path d="M7 8h10M7 11h6" />
+            <path d="M9 20h6m-3-3v3" />
+        </symbol>
+
+        <!-- 3. Voice Neural Microphone -->
+        <symbol id="icon-voice-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="3" width="6" height="10" rx="3" />
+            <path d="M5 10a7 7 0 0014 0" />
+            <path d="M12 17v4m-3 0h6" />
+        </symbol>
+
+        <!-- 4. Speech Cadence / Speed Meter -->
+        <symbol id="icon-speech-meter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 16.5A8 8 0 1119.5 16.5" />
+            <path d="M12 12l3.5-3.5" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        </symbol>
+
+        <!-- 5. Slide Transition & Pause -->
+        <symbol id="icon-slide-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="14" rx="2" />
+            <path d="M10 9v4m4-4v4" />
+            <path d="M3 18h18" opacity="0.3" />
+        </symbol>
+
+        <!-- 6. Settings / Tuning Sliders -->
+        <symbol id="icon-settings-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h9m4 0h3M13 4v4M4 12h3m4 0h9M7 10v4M4 18h11m4 0h1M15 16v4" />
+        </symbol>
+
+        <!-- 7. Magic 1-Click Wand -->
+        <symbol id="icon-wand-magic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 9l5.5-5.5M15 9l-9 9a2.12 2.12 0 01-3-3l9-9m3 3l-3-3" />
+            <path d="M11.5 3.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5zM6 8l.3 1 1 .3-1 .3-.3 1-.3-1-1-.3 1-.3.3-1z" />
+        </symbol>
+
+        <!-- 8. Script Editor -->
+        <symbol id="icon-script-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" />
+            <path d="M14 3v6h6" />
+            <path d="M8 13h8M8 17h5" />
+        </symbol>
+
+        <!-- 9. Video Display Screen -->
+        <symbol id="icon-video-screen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="13" rx="2.5" />
+            <path d="M10 8.5l5 3-5 3v-6z" fill="currentColor" stroke="none" />
+            <path d="M8 20h8m-4-3v3" />
+        </symbol>
+
+        <!-- 10. Pipeline Step 1: Extract Slides -->
+        <symbol id="icon-step-extract" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3L2 8l10 5 10-5-10-5z" />
+            <path d="M2 12l10 5 10-5" />
+            <path d="M2 16l10 5 10-5" />
+        </symbol>
+
+        <!-- 11. Pipeline Step 2: AI Script Gen -->
+        <symbol id="icon-step-script" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="5" width="14" height="14" rx="2.5" />
+            <path d="M9 9h6M9 12h6M9 15h4" />
+            <path d="M1 9h4M1 15h4M19 9h4M19 15h4M9 1v4M15 1v4M9 19v4M15 19v4" />
+        </symbol>
+
+        <!-- 12. Pipeline Step 3: Neural TTS Audio -->
+        <symbol id="icon-step-tts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h2M7 8v8M10 5v14M13 3v18M16 7v10M19 9v6M21 12h2" />
+        </symbol>
+
+        <!-- 13. Pipeline Step 4: Voice Cloning / Optimization -->
+        <symbol id="icon-step-clone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14a8 8 0 0116 0" />
+            <path d="M7 14a5 5 0 0110 0" />
+            <path d="M10 14a2 2 0 014 0" />
+            <path d="M12 14v6m-4 0h8" />
+        </symbol>
+
+        <!-- 14. Pipeline Step 5: Render 1080p MP4 -->
+        <symbol id="icon-step-render" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="14" rx="2.5" />
+            <path d="M7 5v14M17 5v14M3 9.5h4M17 9.5h4M3 14.5h4M17 14.5h4" />
+        </symbol>
+
+        <!-- 15. Console Terminal -->
+        <symbol id="icon-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M7 9l3 3-3 3M13 15h4" />
+        </symbol>
+
+        <!-- 16. Download Video File -->
+        <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4v12m0 0l-4-4m4 4l4-4" />
+            <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+        </symbol>
+
+        <!-- 17. Refresh Action -->
+        <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4v5h5M20 20v-5h-5M4.93 15a8 8 0 0013.14 2.14L20 15M19.07 9A8 8 0 005.93 6.86L4 9" />
+        </symbol>
+
+        <!-- 18. Status Checkmark (Success) -->
+        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5" />
+        </symbol>
+
+        <!-- 19. Status Alert (Warning) -->
+        <symbol id="icon-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        </symbol>
+
+        <!-- 20. Status Error (Circle Cross) -->
+        <symbol id="icon-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M15 9l-6 6M9 9l6 6" />
+        </symbol>
+
+        <!-- 21. Status Info (Circle Info) -->
+        <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v5m0-8h.01" />
+        </symbol>
+
+        <!-- 22. Close / Dismiss -->
+        <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 18L18 6M6 6l12 12" />
+        </symbol>
+
+        <!-- 23. Chevron Down -->
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 9l-7 7-7-7" />
+        </symbol>
+
+        <!-- 24. Eye (Visible) -->
+        <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+        </symbol>
+
+        <!-- 25. Eye Off (Hidden) -->
+        <symbol id="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" />
+        </symbol>
+    </svg>
+
     <!-- Toast Notification Container (Floating Top-Right) -->
     <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
 
@@ -74,10 +235,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3.5">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white">
-                    <!-- SVG Play Sparkle Icon -->
-                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M5.536 21.886a1.5 1.5 0 0 1-2.286-1.286V3.4a1.5 1.5 0 0 1 2.286-1.286l14.4 8.6a1.5 1.5 0 0 1 0 2.572l-14.4 8.6z"/>
-                    </svg>
+                    <svg class="w-5 h-5"><use href="#icon-studio-logo"></use></svg>
                 </div>
                 <div>
                     <div class="flex items-center space-x-2">
@@ -88,21 +246,14 @@
                 </div>
             </div>
 
-            <!-- Hardware & Engine Status -->
+            <!-- Clean Minimal Status Indicator -->
             <div class="flex items-center space-x-3">
-                <div class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-dark-900 border border-slate-800 text-xs">
+                <div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-dark-900/80 border border-slate-800/80 text-xs">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="font-semibold text-slate-300">GPU: RTX 3060 Ti</span>
-                    <span class="text-slate-600">|</span>
-                    <span class="text-slate-400">PowerPoint COM</span>
-                    <span class="text-slate-600">|</span>
-                    <span class="text-indigo-400 font-medium">EverAI & EdgeTTS</span>
+                    <span class="text-xs font-medium text-slate-300">Hệ Thống Sẵn Sàng</span>
                 </div>
-                <button onclick="location.reload()" class="p-2 rounded-xl bg-dark-900 hover:bg-dark-800 border border-slate-800 text-slate-400 hover:text-white transition-colors" title="Làm mới">
-                    <!-- SVG Refresh Icon -->
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                <button onclick="location.reload()" class="p-2 rounded-xl bg-dark-900 hover:bg-dark-800 border border-slate-800 text-slate-400 hover:text-white transition-colors" title="Làm mới giao diện">
+                    <svg class="w-4 h-4"><use href="#icon-refresh"></use></svg>
                 </button>
             </div>
         </div>
@@ -131,10 +282,7 @@
                     <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-xl p-5 text-center cursor-pointer transition-all bg-dark-900/60 hover:bg-sky-500/5 group">
                         <input type="file" id="file-input" accept=".pptx" class="hidden">
                         <div class="w-12 h-12 mx-auto rounded-xl bg-dark-800 group-hover:bg-sky-500/20 flex items-center justify-center transition-colors mb-2.5 border border-slate-700 group-hover:border-sky-500/40 text-slate-400 group-hover:text-sky-400">
-                            <!-- SVG PowerPoint Presentation Icon -->
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
+                            <svg class="w-6 h-6"><use href="#icon-slide-deck"></use></svg>
                         </div>
                         <p class="text-xs font-semibold text-slate-200" id="file-name-display">Kéo thả file .pptx vào đây hoặc <span class="text-sky-400 underline">tải lên</span></p>
                         <p class="text-[11px] text-slate-400 mt-1" id="file-info-display">Hỗ trợ Microsoft PowerPoint 2016 / 2019 / 2021 / Office 365</p>
@@ -143,52 +291,69 @@
                     <div class="flex items-center justify-between pt-1 text-xs">
                         <span class="text-slate-400 text-[11px]">Chưa có file bài giảng?</span>
                         <button id="btn-use-sample" class="text-sky-400 hover:text-sky-300 font-semibold text-[11px] flex items-center space-x-1.5 hover:underline">
-                            <!-- SVG Sparkles Icon -->
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z" />
-                            </svg>
                             <span>Dùng Slide mẫu demo_lecture.pptx</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- CARD 2: Voice & AI Studio Settings -->
+                <!-- CARD 2: Voice & AI Studio Settings (Collapsible) -->
                 <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-4">
-                    <div class="flex items-center justify-between">
+                    <!-- Header with Clickable Toggle & Live Selection Pill -->
+                    <div class="flex items-center justify-between cursor-pointer select-none group" onclick="toggleVoiceSettingsAccordion()" title="Nhấn để thu nhỏ / mở rộng">
                         <div class="flex items-center space-x-2.5">
                             <span class="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-400">2</span>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Giọng Đọc & AI Studio</h2>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider group-hover:text-sky-400 transition-colors">Giọng Đọc & Lời Giảng</h2>
                         </div>
-                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                            Neural TTS
-                        </span>
+                        <div class="flex items-center space-x-2">
+                            <span id="voice-summary-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                                Mai Chi • -10%
+                            </span>
+                            <span class="p-1 rounded-lg text-slate-400 group-hover:text-white transition-colors">
+                                <svg id="voice-settings-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-300 transform rotate-180">
+                                    <use href="#icon-chevron-down"></use>
+                                </svg>
+                            </span>
+                        </div>
                     </div>
 
-                    <!-- Voice Dropdown -->
+                    <!-- Collapsible Voice Settings Drawer -->
+                    <div id="voice-settings-drawer" class="space-y-4 transition-all">
+
+                    <!-- Voice Dropdown (Clean, Professional Typography) -->
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                            <span>Lựa chọn Giọng đọc bài giảng (TTS)</span>
+                            <span class="flex items-center space-x-1.5">
+                                <svg class="w-3.5 h-3.5 text-sky-400"><use href="#icon-voice-wave"></use></svg>
+                                <span>Lựa chọn Giọng đọc bài giảng (TTS)</span>
+                            </span>
                             <span class="text-[10px] text-slate-400 font-normal">Đa ngôn ngữ & Sư phạm</span>
                         </label>
                         <div class="relative">
                             <select id="voice-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
-                                <optgroup label="🌟 MICROSOFT NEURAL TTS (Miễn phí • Trầm ấm • Sư phạm)" class="bg-dark-900 text-sky-400 font-bold">
-                                    <option value="vi-VN-NamMinhNeural" selected class="text-white font-normal">🎙️ Nam Minh (Nam - Giọng chuẩn giảng dạy, dõng dạc)</option>
-                                    <option value="vi-VN-HoaiMyNeural" class="text-white font-normal">🎙️ Hoài My (Nữ - Truyền cảm, ngọt ngào, rõ ràng)</option>
+                                <optgroup label="Giọng Đọc Sư Phạm (Khuyên Dùng)" class="bg-dark-900 text-sky-400 font-semibold">
+                                    <option value="zerotts:maichi" selected class="text-white font-normal">Mai Chi (Nữ - Dịu dàng, truyền cảm)</option>
+                                    <option value="zerotts:giahuy" class="text-white font-normal">Gia Huy (Nam - Trầm ấm, tâm tình)</option>
+                                    <option value="zerotts:baotrang" class="text-white font-normal">Bảo Trang (Nữ - Trưởng thành, rõ ràng)</option>
+                                    <option value="zerotts:quangminh" class="text-white font-normal">Quang Minh (Nam - Dứt khoát, tin tức)</option>
+                                    <option value="zerotts:kimoanh" class="text-white font-normal">Kim Oanh (Nữ - Truyền cảm, ấm áp)</option>
+                                    <option value="zerotts:huuduc" class="text-white font-normal">Hữu Đức (Nam - Điềm đạm, trầm)</option>
+                                    <option value="zerotts:hamy" class="text-white font-normal">Hà My (Nữ - Ngọt ngào, nhẹ nhàng)</option>
+                                    <option value="zerotts:tiendat" class="text-white font-normal">Tiến Đạt (Nam - Sôi nổi, dõng dạc)</option>
                                 </optgroup>
-                                <optgroup label="🚀 EVERAI MULTILINGUAL & CLONE (Đa ngôn ngữ • Chuẩn tự nhiên)" class="bg-dark-900 text-indigo-400 font-bold">
-                                    <option value="voice-9c25f795-6ed9-4fd4" class="text-emerald-400 font-medium">✨ Giọng Clone Cá Nhân (Nguyên) - EverAI Studio</option>
-                                    <option value="vi_male_lehoang_mb" class="text-white font-normal">🚀 Lê Hoàng (Nam - Miền Bắc)</option>
-                                    <option value="vi_male_minhtriet_mb" class="text-white font-normal">🚀 Minh Triết (Nam - Miền Bắc)</option>
-                                    <option value="vi_female_thuytrang_mb" class="text-white font-normal">🚀 Thùy Trang (Nữ - Miền Bắc)</option>
-                                    <option value="vi_female_kieunhi_mn" class="text-white font-normal">🚀 Kiều Nhi (Nữ - Miền Nam)</option>
+                                <optgroup label="Giọng Đọc Tiêu Chuẩn" class="bg-dark-900 text-slate-400 font-semibold">
+                                    <option value="vi-VN-NamMinhNeural" class="text-white font-normal">Nam Minh (Nam - Giảng bài dõng dạc)</option>
+                                    <option value="vi-VN-HoaiMyNeural" class="text-white font-normal">Hoài My (Nữ - Truyền cảm, rõ ràng)</option>
+                                </optgroup>
+                                <optgroup label="Giọng Đọc Bổ Sung" class="bg-dark-900 text-purple-400 font-semibold">
+                                    <option value="voice-9c25f795-6ed9-4fd4" class="text-emerald-400 font-medium">Giọng Clone Cá Nhân (Nguyên) - Studio</option>
+                                    <option value="vi_male_lehoang_mb" class="text-white font-normal">Lê Hoàng (Nam - Miền Bắc)</option>
+                                    <option value="vi_male_minhtriet_mb" class="text-white font-normal">Minh Triết (Nam - Miền Bắc)</option>
+                                    <option value="vi_female_thuytrang_mb" class="text-white font-normal">Thùy Trang (Nữ - Miền Bắc)</option>
+                                    <option value="vi_female_kieunhi_mn" class="text-white font-normal">Kiều Nhi (Nữ - Miền Nam)</option>
                                 </optgroup>
                             </select>
                             <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                                <!-- SVG Chevron Down -->
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
                             </div>
                         </div>
                     </div>
@@ -196,21 +361,43 @@
                     <!-- Speech Cadence & Pacing -->
                     <div>
                         <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                            <span>Tốc độ đọc & Nhịp điệu giảng bài</span>
+                            <span class="flex items-center space-x-1.5">
+                                <svg class="w-3.5 h-3.5 text-sky-400"><use href="#icon-speech-meter"></use></svg>
+                                <span>Tốc độ đọc & Nhịp điệu giảng bài</span>
+                            </span>
                             <span class="text-[10px] text-sky-400 font-semibold">Nhấn nhá & Ngắt nghỉ</span>
                         </label>
                         <div class="relative">
                             <select id="rate-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
-                                <option value="-10%" selected>🎓 Chuẩn Giảng Viên Sư Phạm (-10% • Nhấn nhá, ngắt nghỉ truyền cảm)</option>
-                                <option value="-15%">🐢 Chậm rãi, thư thái (-15% • Dễ tiếp thu kiến thức khó)</option>
-                                <option value="-5%">🎙️ Tự nhiên, linh hoạt (-5% • Năng động, cuốn hút)</option>
-                                <option value="+0%">⚡ Tốc độ tiêu chuẩn (0% • Nhanh gọn)</option>
+                                <option value="-10%" selected>Chuẩn Giảng Viên Sư Phạm (-10% • Nhấn nhá, truyền cảm)</option>
+                                <option value="-15%">Chậm rãi, thư thái (-15% • Dễ tiếp thu kiến thức)</option>
+                                <option value="-5%">Tự nhiên, linh hoạt (-5% • Năng động, cuốn hút)</option>
+                                <option value="+0%">Tốc độ tiêu chuẩn (0% • Nhanh gọn)</option>
                             </select>
                             <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                                <!-- SVG Chevron Down -->
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide Pause Duration -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+                            <span class="flex items-center space-x-1.5">
+                                <svg class="w-3.5 h-3.5 text-amber-400"><use href="#icon-slide-pause"></use></svg>
+                                <span>Thời gian dừng chuyển giữa các Slide</span>
+                            </span>
+                            <span class="text-[10px] text-amber-400 font-semibold">Nghỉ ngơi sư phạm</span>
+                        </label>
+                        <div class="relative">
+                            <select id="slide-pause-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
+                                <option value="2.3" selected>Nghỉ tiêu chuẩn 2.3s (0.8s đầu slide + 1.5s cuối slide)</option>
+                                <option value="3.0">Nghỉ thư thái 3.0s (1.0s đầu slide + 2.0s cuối slide)</option>
+                                <option value="1.5">Nghỉ nhanh 1.5s (0.5s đầu slide + 1.0s cuối slide)</option>
+                                <option value="4.0">Nghỉ chậm 4.0s (1.5s đầu slide + 2.5s cuối slide)</option>
+                            </select>
+                            <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
+                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
                             </div>
                         </div>
                     </div>
@@ -219,17 +406,12 @@
                     <div class="rounded-xl border border-slate-800 bg-dark-900/60 overflow-hidden transition-all">
                         <button type="button" onclick="toggleAdvancedAccordion()" class="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-800/60 transition-colors text-left select-none">
                             <div class="flex items-center space-x-2.5">
-                                <!-- SVG Sliders Icon -->
-                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                                </svg>
-                                <span class="text-xs font-semibold text-slate-300">Tùy chọn nâng cao & Clone giọng thật (RVC)</span>
+                                <svg class="w-4 h-4 text-slate-400"><use href="#icon-settings-gear"></use></svg>
+                                <span class="text-xs font-semibold text-slate-300">Tùy chọn nâng cao & Mẫu giọng riêng</span>
                             </div>
                             <div class="flex items-center space-x-2">
                                 <span id="advanced-status-badge" class="text-[10px] text-slate-500">Mặc định thu gọn</span>
-                                <svg id="advanced-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <svg id="advanced-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-300"><use href="#icon-chevron-down"></use></svg>
                             </div>
                         </button>
 
@@ -244,12 +426,8 @@
                                 <div class="relative">
                                     <input type="password" id="gemini-api-key" placeholder="AIzaSy... (Để trống nếu dùng kịch bản có sẵn)" 
                                            class="w-full bg-dark-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
-                                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-2 text-slate-400 hover:text-slate-200">
-                                        <!-- SVG Eye Icon -->
-                                        <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
+                                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-2 text-slate-400 hover:text-slate-200" title="Ẩn/Hiện khóa">
+                                        <svg id="eye-icon" class="w-4 h-4"><use href="#icon-eye"></use></svg>
                                     </button>
                                 </div>
                             </div>
@@ -262,9 +440,7 @@
                                 <div id="voice-drop-zone" class="border border-dashed border-slate-700 hover:border-indigo-500 rounded-lg p-3 text-center cursor-pointer transition-all bg-dark-950/60 hover:bg-indigo-500/5 group">
                                     <input type="file" id="voice-file-input" accept="video/*,audio/*,.mp4,.mov,.mp3,.wav,.m4a" class="hidden">
                                     <div class="w-8 h-8 mx-auto rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-1">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                        </svg>
+                                        <svg class="w-4 h-4"><use href="#icon-voice-wave"></use></svg>
                                     </div>
                                     <p class="text-[11px] font-medium text-slate-200" id="voice-file-display">Kéo thả Video hoặc File Ghi Âm vào đây</p>
                                     <p class="text-[10px] text-slate-400">Tự động trích xuất file mẫu để RVC GPU học giọng</p>
@@ -274,7 +450,7 @@
                             <!-- RVC Switch -->
                             <div class="flex items-center justify-between pt-1">
                                 <div>
-                                    <span class="text-xs font-medium text-white block">RVC Voice Cloning (GPU RTX 3060 Ti)</span>
+                                    <span class="text-xs font-medium text-white block">Nhái giọng mẫu giảng viên (Voice Cloning)</span>
                                     <span class="text-[10px] text-slate-400">Nhái âm sắc sang giọng thật của bạn</span>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
@@ -286,21 +462,17 @@
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
-                    <div class="space-y-2.5 pt-2">
+                    </div> <!-- End #voice-settings-drawer -->
+
+                    <!-- Action Buttons (Always Accessible) -->
+                    <div class="space-y-2.5 pt-2 border-t border-slate-800/70">
                         <button id="btn-quick-generate" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 hover:from-sky-400 hover:via-indigo-500 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg glow-primary flex items-center justify-center transition-all hover:scale-[1.01] active:scale-[0.99] space-x-2">
-                            <!-- SVG Bolt Icon -->
-                            <svg class="w-4 h-4 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
-                            </svg>
+                            <svg class="w-4 h-4 text-amber-300"><use href="#icon-wand-magic"></use></svg>
                             <span>Tạo Video Tự Động 1-Click</span>
                         </button>
                         
                         <button id="btn-preview-scripts" class="w-full py-2.5 px-4 rounded-xl bg-dark-800 hover:bg-dark-700 border border-slate-700/80 text-slate-200 font-semibold text-xs flex items-center justify-center transition-all space-x-2">
-                            <!-- SVG Edit Icon -->
-                            <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                            <svg class="w-4 h-4 text-sky-400"><use href="#icon-script-edit"></use></svg>
                             <span>Xem & Sửa Kịch Bản Trước Khi Tạo</span>
                         </button>
                     </div>
@@ -316,20 +488,15 @@
                 <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2.5">
-                            <!-- SVG Film Icon -->
-                            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                            </svg>
+                            <svg class="w-5 h-5 text-sky-400"><use href="#icon-video-screen"></use></svg>
                             <h2 class="text-sm font-bold text-white uppercase tracking-wider">Video Bài Giảng Hoàn Thiện</h2>
                         </div>
                         <div class="flex items-center space-x-2">
                             <span id="resolution-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
                                 1080p Full HD
                             </span>
-                            <a id="btn-download-video" href="#" download class="hidden px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5 shadow-md">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
+                            <a id="btn-download-video" href="#" download class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5 shadow-md">
+                                <svg class="w-3.5 h-3.5"><use href="#icon-download"></use></svg>
                                 <span>Tải Video MP4</span>
                             </a>
                         </div>
@@ -341,9 +508,7 @@
                         <!-- Empty State Placeholder -->
                         <div id="video-placeholder" class="text-center p-6 space-y-3">
                             <div class="w-14 h-14 rounded-2xl bg-dark-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-600">
-                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
+                                <svg class="w-7 h-7"><use href="#icon-video-screen"></use></svg>
                             </div>
                             <div>
                                 <h3 class="text-sm font-semibold text-slate-300">Chưa có video được render</h3>
@@ -360,14 +525,11 @@
                     </div>
                 </div>
 
-                <!-- Live Pipeline Stepper with Per-Stage Timers -->
+                <!-- Live Pipeline Stepper with Per-Stage Timers & Custom Step Icons -->
                 <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-3.5">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
-                            <!-- SVG Steps Icon -->
-                            <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7" />
-                            </svg>
+                            <svg class="w-4 h-4 text-sky-400"><use href="#icon-step-render"></use></svg>
                             <h2 class="text-xs font-bold text-white uppercase tracking-wider">Tiến Trình Xử Lý Pipeline</h2>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -386,41 +548,51 @@
                         <div id="progress-bar" class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 w-0"></div>
                     </div>
 
-                    <!-- 5 Steps Indicators with Real-time Duration Badges -->
+                    <!-- 5 Steps Indicators with Dedicated Custom Icons & Timers -->
                     <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                        <!-- Step 1 -->
                         <div id="step-badge-1" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <div class="font-bold text-[11px] mb-0.5">BƯỚC 1</div>
-                            <div class="text-[10px] truncate">Trích xuất</div>
-                            <div id="step-time-1" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-extract"></use></svg>
+                            <div class="font-bold text-[11px]">BƯỚC 1</div>
+                            <div class="text-[10px] truncate text-slate-400">Trích xuất</div>
+                            <div id="step-time-1" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
                         </div>
+                        <!-- Step 2 -->
                         <div id="step-badge-2" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <div class="font-bold text-[11px] mb-0.5">BƯỚC 2</div>
-                            <div class="text-[10px] truncate">Kịch bản AI</div>
-                            <div id="step-time-2" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-script"></use></svg>
+                            <div class="font-bold text-[11px]">BƯỚC 2</div>
+                            <div class="text-[10px] truncate text-slate-400">Kịch bản AI</div>
+                            <div id="step-time-2" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
                         </div>
+                        <!-- Step 3 -->
                         <div id="step-badge-3" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <div class="font-bold text-[11px] mb-0.5">BƯỚC 3</div>
-                            <div class="text-[10px] truncate">Lồng tiếng TTS</div>
-                            <div id="step-time-3" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-tts"></use></svg>
+                            <div class="font-bold text-[11px]">BƯỚC 3</div>
+                            <div class="text-[10px] truncate text-slate-400">Lồng tiếng TTS</div>
+                            <div id="step-time-3" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
                         </div>
+                        <!-- Step 4 -->
                         <div id="step-badge-4" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <div class="font-bold text-[11px] mb-0.5">BƯỚC 4</div>
-                            <div class="text-[10px] truncate">Tối ưu Âm sắc</div>
-                            <div id="step-time-4" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-clone"></use></svg>
+                            <div class="font-bold text-[11px]">BƯỚC 4</div>
+                            <div class="text-[10px] truncate text-slate-400">Tối ưu Âm sắc</div>
+                            <div id="step-time-4" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
                         </div>
+                        <!-- Step 5 -->
                         <div id="step-badge-5" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <div class="font-bold text-[11px] mb-0.5">BƯỚC 5</div>
-                            <div class="text-[10px] truncate">Render Video</div>
-                            <div id="step-time-5" class="text-[10px] font-mono mt-1 font-semibold text-slate-600">--</div>
+                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-render"></use></svg>
+                            <div class="font-bold text-[11px]">BƯỚC 5</div>
+                            <div class="text-[10px] truncate text-slate-400">Render Video</div>
+                            <div id="step-time-5" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
                         </div>
                     </div>
 
-                    <!-- Bảng Chi Tiết Thời Gian Từng Giai Đoạn (Stage Execution Time Breakdown) -->
+                    <!-- Bảng Chi Tiết Thời Gian Từng Giai Đoạn -->
                     <div id="timing-summary-card" class="hidden p-3 rounded-xl bg-dark-950/90 border border-slate-800 text-xs space-y-2">
                         <div class="flex items-center justify-between font-bold text-slate-300 pb-1.5 border-b border-slate-800/80">
                             <span class="flex items-center space-x-1.5 text-sky-400">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span>Thời gian gen theo từng giai đoạn</span>
+                                <svg class="w-3.5 h-3.5"><use href="#icon-speech-meter"></use></svg>
+                                <span>Thời gian xử lý từng giai đoạn</span>
                             </span>
                             <span id="timing-total-badge" class="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Tổng: --</span>
                         </div>
@@ -449,20 +621,27 @@
                     </div>
                 </div>
 
-                <!-- Realtime Console Logs -->
-                <div class="glass-panel rounded-2xl p-4 shadow-xl space-y-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <!-- SVG Terminal Icon -->
-                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span>Nhật Ký Thực Thi (Console Log)</span>
+                <!-- Realtime Console Logs (Collapsible / Compact) -->
+                <div class="rounded-2xl border border-slate-800/80 bg-dark-900/60 overflow-hidden transition-all">
+                    <button type="button" onclick="toggleLogAccordion()" class="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-800/60 transition-colors text-left select-none text-xs">
+                        <div class="flex items-center space-x-2.5 text-slate-400">
+                            <svg class="w-3.5 h-3.5 text-slate-500"><use href="#icon-terminal"></use></svg>
+                            <span class="font-semibold text-xs text-slate-300">Nhật Ký Hệ Thống</span>
+                            <span id="log-live-snippet" class="text-[10px] text-slate-500 font-mono truncate max-w-[200px] hidden sm:inline">> Sẵn sàng</span>
                         </div>
-                        <button onclick="clearLogs()" class="text-[11px] text-slate-500 hover:text-slate-300">Xóa log</button>
-                    </div>
-                    <div id="log-terminal" class="h-32 bg-dark-950 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-1 border border-slate-800/80 selection:bg-slate-700">
-                        <div class="text-sky-400">> AI Video Studio v2.0 đã khởi động. Sẵn sàng nhận lệnh...</div>
+                        <div class="flex items-center space-x-2">
+                            <span id="log-toggle-text" class="text-[10px] text-slate-500">Mở rộng</span>
+                            <svg id="log-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-300"><use href="#icon-chevron-down"></use></svg>
+                        </div>
+                    </button>
+                    <div id="log-drawer" class="hidden p-3.5 border-t border-slate-800/80 space-y-2 bg-dark-950/60">
+                        <div class="flex items-center justify-between text-[11px] text-slate-500">
+                            <span>Chi tiết hoạt động nền:</span>
+                            <button onclick="clearLogs()" class="hover:text-slate-300 transition-colors">Xóa sạch</button>
+                        </div>
+                        <div id="log-terminal" class="h-32 bg-dark-950 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-1 border border-slate-800/80 selection:bg-slate-700">
+                            <div class="text-sky-400">> AI Video Studio v2.0 đã khởi động. Sẵn sàng nhận lệnh...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -475,9 +654,7 @@
             <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                        <svg class="w-5 h-5"><use href="#icon-script-edit"></use></svg>
                     </div>
                     <div>
                         <h2 class="text-base font-bold text-white">Chỉnh Sửa Kịch Bản Giảng Dạy Từng Slide</h2>
@@ -485,13 +662,11 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <button onclick="closeScriptEditor()" class="px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 text-xs font-semibold">
+                    <button onclick="closeScriptEditor()" class="px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 text-xs font-semibold transition-colors">
                         Đóng lại
                     </button>
                     <button id="btn-confirm-render" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-sky-500/20 flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.286L13 21l-2.286-6.857L5 12l5.714-2.286L13 3z" />
-                        </svg>
+                        <svg class="w-4 h-4"><use href="#icon-wand-magic"></use></svg>
                         <span>Xác Nhận & Render Video Ngay</span>
                     </button>
                 </div>
@@ -508,7 +683,7 @@
     <!-- Footer -->
     <footer class="border-t border-slate-800/60 py-4 mt-auto">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            AI Video Agent Generator • Chuẩn hóa kiến trúc & Tự động hóa sản xuất Video Bài Giảng 1080p
+            AI Video Studio • Hệ thống sản xuất video bài giảng điện tử tự động 1080p
         </div>
     </footer>
 
@@ -546,47 +721,42 @@
         const btnConfirmRender = document.getElementById('btn-confirm-render');
 
         // ==========================================
-        // TOAST NOTIFICATION SYSTEM
+        // TOAST NOTIFICATION SYSTEM (Custom SVG Icons)
         // ==========================================
         function showToast({ title, message, type = 'info', duration = 4000 }) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = 'toast-enter pointer-events-auto flex flex-col rounded-xl p-3.5 shadow-2xl border backdrop-blur-xl transition-all';
 
-            let iconSvg = '';
+            let iconId = 'icon-info';
             let borderBg = '';
-            let progressBg = '';
 
             if (type === 'success') {
                 borderBg = 'bg-dark-900/95 border-emerald-500/40 text-emerald-300 shadow-emerald-500/10';
-                progressBg = 'bg-emerald-500';
-                iconSvg = `<svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                iconId = 'icon-check';
             } else if (type === 'error') {
                 borderBg = 'bg-dark-900/95 border-rose-500/40 text-rose-300 shadow-rose-500/10';
-                progressBg = 'bg-rose-500';
-                iconSvg = `<svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                iconId = 'icon-error';
             } else if (type === 'warning') {
                 borderBg = 'bg-dark-900/95 border-amber-500/40 text-amber-300 shadow-amber-500/10';
-                progressBg = 'bg-amber-500';
-                iconSvg = `<svg class="w-5 h-5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                iconId = 'icon-alert';
             } else {
                 borderBg = 'bg-dark-900/95 border-sky-500/40 text-sky-300 shadow-sky-500/10';
-                progressBg = 'bg-sky-500';
-                iconSvg = `<svg class="w-5 h-5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                iconId = 'icon-info';
             }
 
             toast.classList.add(...borderBg.split(' '));
             toast.innerHTML = `
                 <div class="flex items-start justify-between space-x-2.5">
                     <div class="flex items-start space-x-2.5">
-                        ${iconSvg}
+                        <svg class="w-5 h-5 shrink-0 mt-0.5"><use href="#${iconId}"></use></svg>
                         <div>
                             <h4 class="text-xs font-bold text-white">${title}</h4>
                             <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">${message}</p>
                         </div>
                     </div>
                     <button class="toast-close text-slate-400 hover:text-white p-0.5 shrink-0 transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        <svg class="w-3.5 h-3.5"><use href="#icon-close"></use></svg>
                     </button>
                 </div>
             `;
@@ -692,7 +862,48 @@
                 });
         }
 
-        // Toggle Accordion function
+                        function toggleVoiceSettingsAccordion() {
+            const drawer = document.getElementById('voice-settings-drawer');
+            const chevron = document.getElementById('voice-settings-chevron');
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function updateVoiceSummaryPill() {
+            const vSel = document.getElementById('voice-select');
+            const rSel = document.getElementById('rate-select');
+            const pSel = document.getElementById('slide-pause-select');
+            const pill = document.getElementById('voice-summary-pill');
+            if (!vSel || !pill) return;
+
+            let vText = vSel.options[vSel.selectedIndex]?.text || 'Mai Chi';
+            const cleanName = vText.split('(')[0].trim();
+            const rateVal = rSel ? rSel.value : '-10%';
+            pill.innerText = `${cleanName} • ${rateVal}`;
+        }
+
+        function toggleLogAccordion() {
+            const drawer = document.getElementById('log-drawer');
+            const chevron = document.getElementById('log-chevron');
+            const toggleText = document.getElementById('log-toggle-text');
+            if (!drawer) return;
+            if (drawer.classList.contains('hidden')) {
+                drawer.classList.remove('hidden');
+                if (chevron) chevron.style.transform = 'rotate(180deg)';
+                if (toggleText) toggleText.innerText = 'Thu gọn';
+            } else {
+                drawer.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+                if (toggleText) toggleText.innerText = 'Mở rộng';
+            }
+        }
+
         function toggleAdvancedAccordion() {
             const drawer = document.getElementById('advanced-drawer');
             const chevron = document.getElementById('advanced-chevron');
@@ -713,10 +924,13 @@
 
         function toggleKeyVisibility() {
             const input = document.getElementById('gemini-api-key');
+            const eyeUse = document.querySelector('#eye-icon use');
             if (input.type === 'password') {
                 input.type = 'text';
+                if (eyeUse) eyeUse.setAttribute('href', '#icon-eye-off');
             } else {
                 input.type = 'password';
+                if (eyeUse) eyeUse.setAttribute('href', '#icon-eye');
             }
         }
 
@@ -725,6 +939,10 @@
             line.innerText = text;
             logTerminal.appendChild(line);
             logTerminal.scrollTop = logTerminal.scrollHeight;
+            const snippet = document.getElementById('log-live-snippet');
+            if (snippet && text) {
+                snippet.innerText = text.length > 35 ? text.slice(0, 32) + '...' : text;
+            }
         }
 
         function clearLogs() {
@@ -787,7 +1005,7 @@
                     pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                     if (summaryCard) summaryCard.classList.remove('hidden');
                     showToast({ 
-                        title: '🎉 Tạo Video Hoàn Tất!', 
+                        title: 'Tạo Video Hoàn Tất!', 
                         message: `Render thành công 1080p (${data.timings ? data.timings.total_formatted : ''}): ${data.video}`, 
                         type: 'success', 
                         duration: 7000 
@@ -824,14 +1042,14 @@
                     let displayTime = stepInfo.formatted || '--';
                     if (stepInfo.status === 'completed') {
                         if (stepTimeEl) {
-                            stepTimeEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ ${displayTime}</span>`;
+                            stepTimeEl.innerHTML = `<span class="inline-flex items-center text-emerald-400 font-bold"><svg class="w-2.5 h-2.5 mr-1 inline"><use href="#icon-check"></use></svg>${displayTime}</span>`;
                         }
                         if (summaryTimeEl) {
                             summaryTimeEl.innerHTML = `<span class="text-emerald-400 font-bold">${displayTime}</span>`;
                         }
                     } else if (stepInfo.status === 'running') {
                         if (stepTimeEl) {
-                            stepTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">⏳ Đang xử lý</span>`;
+                            stepTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">Đang xử lý</span>`;
                         }
                         if (summaryTimeEl) {
                             summaryTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">Đang chạy...</span>`;
@@ -869,11 +1087,11 @@
                 const el = document.getElementById(`step-badge-${i}`);
                 if (!el) continue;
                 if (i < activeIndex || (activeIndex === 6)) {
-                    el.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold flex flex-col justify-between';
+                    el.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold flex flex-col justify-between transition-all';
                 } else if (i === activeIndex) {
-                    el.className = 'p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/50 text-sky-300 font-bold glow-primary flex flex-col justify-between';
+                    el.className = 'p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/50 text-sky-300 font-bold glow-primary flex flex-col justify-between transition-all';
                 } else {
-                    el.className = 'p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 flex flex-col justify-between';
+                    el.className = 'p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 flex flex-col justify-between transition-all';
                 }
             }
         }
@@ -909,6 +1127,7 @@
             const apiKey = document.getElementById('gemini-api-key').value;
             const voice = document.getElementById('voice-select').value;
             const rate = document.getElementById('rate-select')?.value || '-10%';
+            const slidePause = parseFloat(document.getElementById('slide-pause-select')?.value || '2.3');
             const enableRvc = document.getElementById('rvc-toggle').checked;
 
             appendLog(`> Bắt đầu tạo video 1-Click cho file: ${currentFilename}`);
@@ -923,6 +1142,7 @@
                     gemini_api_key: apiKey,
                     voice: voice,
                     rate: rate,
+                    slide_pause: slidePause,
                     enable_rvc: enableRvc
                 })
             }).then(r => r.json()).then(data => {
@@ -947,7 +1167,7 @@
             }).then(r => r.json()).then(data => {
                 btnPreviewScripts.disabled = false;
                 btnPreviewScripts.innerHTML = `
-                    <svg class="w-4 h-4 text-sky-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    <svg class="w-4 h-4 text-sky-400 mr-2"><use href="#icon-script-edit"></use></svg>
                     <span>Xem & Sửa Kịch Bản Trước Khi Tạo</span>
                 `;
                 
@@ -971,7 +1191,17 @@
             slidesEditorGrid.innerHTML = '';
             slides.forEach((s, idx) => {
                 const card = document.createElement('div');
-                card.className = 'bg-dark-900/90 rounded-xl p-4 border border-slate-800 space-y-3';
+                card.className = 'bg-dark-900/90 rounded-xl p-4 border border-slate-800 space-y-3 flex flex-col justify-between';
+                const hasDemo = Boolean(s.has_code_demo);
+                const demo = s.code_demo || {
+                    filename: 'main.py',
+                    language: 'python',
+                    code: '',
+                    terminal_command: 'python main.py',
+                    terminal_output: '',
+                    narration: ''
+                };
+
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold text-sky-400">Trang Slide ${s.slide_index}</span>
@@ -981,13 +1211,78 @@
                         <img src="${s.image_url}?t=${new Date().getTime()}" alt="Slide ${s.slide_index}" class="w-full h-full object-cover">
                     </div>
                     <div>
-                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Lời giảng lồng tiếng (Voiceover):</label>
-                        <textarea id="script-input-${idx}" rows="4" class="w-full bg-dark-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">${s.script}</textarea>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Lời dẫn nhập slide (Voiceover):</label>
+                        <textarea id="script-input-${idx}" rows="3" class="w-full bg-dark-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">${s.script}</textarea>
+                    </div>
+
+                    <!-- Sequential Code Demo Configuration Box -->
+                    <div class="pt-2 border-t border-slate-800/80">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="flex items-center space-x-2 cursor-pointer text-xs font-semibold ${hasDemo ? 'text-emerald-400' : 'text-slate-400'}">
+                                <input type="checkbox" id="demo-toggle-${idx}" class="w-4 h-4 rounded border-slate-700 text-sky-500 focus:ring-0 bg-dark-950 cursor-pointer" ${hasDemo ? 'checked' : ''} onchange="toggleDemoBox(${idx})">
+                                <span class="flex items-center space-x-1.5"><svg class="w-3.5 h-3.5"><use href="#icon-terminal"></use></svg><span>Demo Code (Chuyển cảnh tuần tự)</span></span>
+                            </label>
+                            <span class="text-[10px] text-slate-500 font-mono">Remotion Full-screen</span>
+                        </div>
+
+                        <div id="demo-box-${idx}" class="${hasDemo ? '' : 'hidden'} space-y-2.5 p-3 rounded-lg bg-dark-950 border border-slate-800">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Tên file:</label>
+                                    <input type="text" id="demo-filename-${idx}" value="${demo.filename || 'main.py'}" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-sky-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Ngôn ngữ:</label>
+                                    <select id="demo-lang-${idx}" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-sky-500">
+                                        <option value="python" ${(demo.language === 'python') ? 'selected' : ''}>Python</option>
+                                        <option value="javascript" ${(demo.language === 'javascript') ? 'selected' : ''}>JavaScript</option>
+                                        <option value="typescript" ${(demo.language === 'typescript') ? 'selected' : ''}>TypeScript</option>
+                                        <option value="bash" ${(demo.language === 'bash') ? 'selected' : ''}>Bash / Shell</option>
+                                        <option value="cpp" ${(demo.language === 'cpp') ? 'selected' : ''}>C++</option>
+                                        <option value="java" ${(demo.language === 'java') ? 'selected' : ''}>Java</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Mã nguồn (Hiệu ứng gõ máy tính):</label>
+                                <textarea id="demo-code-${idx}" rows="4" class="w-full bg-dark-900 border border-slate-800 rounded p-2 text-[11px] font-mono text-emerald-400 focus:outline-none focus:border-sky-500 whitespace-pre">${demo.code || ''}</textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Lệnh chạy Terminal:</label>
+                                    <input type="text" id="demo-cmd-${idx}" value="${demo.terminal_command || ''}" placeholder="python main.py" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-sky-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-1">Kết quả Terminal:</label>
+                                    <input type="text" id="demo-output-${idx}" value="${demo.terminal_output || ''}" placeholder="Output kết quả..." class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-sky-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-400 mb-1">Thuyết minh khi gõ & chạy code:</label>
+                                <textarea id="demo-narration-${idx}" rows="2" class="w-full bg-dark-900 border border-slate-800 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Lời giảng thuyết minh chi tiết trong lúc demo...">${demo.narration || ''}</textarea>
+                            </div>
+                        </div>
                     </div>
                 `;
                 slidesEditorGrid.appendChild(card);
             });
         }
+
+        window.toggleDemoBox = function(idx) {
+            const chk = document.getElementById(`demo-toggle-${idx}`);
+            const box = document.getElementById(`demo-box-${idx}`);
+            if (box && chk) {
+                if (chk.checked) {
+                    box.classList.remove('hidden');
+                    chk.parentElement.classList.add('text-emerald-400');
+                    chk.parentElement.classList.remove('text-slate-400');
+                } else {
+                    box.classList.add('hidden');
+                    chk.parentElement.classList.remove('text-emerald-400');
+                    chk.parentElement.classList.add('text-slate-400');
+                }
+            }
+        };
 
         function closeScriptEditor() {
             scriptEditorSection.classList.add('hidden');
@@ -996,16 +1291,34 @@
         btnConfirmRender.addEventListener('click', () => {
             const editedScripts = loadedSlides.map((s, idx) => {
                 const textarea = document.getElementById(`script-input-${idx}`);
-                return {
+                const demoToggle = document.getElementById(`demo-toggle-${idx}`);
+                const hasDemo = demoToggle ? demoToggle.checked : false;
+
+                const item = {
                     slide_index: s.slide_index,
                     title: s.title,
-                    script: textarea ? textarea.value : s.script
+                    script: textarea ? textarea.value : s.script,
+                    has_code_demo: hasDemo
                 };
+
+                if (hasDemo) {
+                    item.code_demo = {
+                        filename: document.getElementById(`demo-filename-${idx}`)?.value || 'main.py',
+                        language: document.getElementById(`demo-lang-${idx}`)?.value || 'python',
+                        code: document.getElementById(`demo-code-${idx}`)?.value || '',
+                        terminal_command: document.getElementById(`demo-cmd-${idx}`)?.value || '',
+                        terminal_output: document.getElementById(`demo-output-${idx}`)?.value || '',
+                        narration: document.getElementById(`demo-narration-${idx}`)?.value || ''
+                    };
+                }
+                return item;
             });
+
 
             const apiKey = document.getElementById('gemini-api-key').value;
             const voice = document.getElementById('voice-select').value;
             const rate = document.getElementById('rate-select')?.value || '-10%';
+            const slidePause = parseFloat(document.getElementById('slide-pause-select')?.value || '2.3');
             const enableRvc = document.getElementById('rvc-toggle').checked;
 
             closeScriptEditor();
@@ -1022,6 +1335,7 @@
                     gemini_api_key: apiKey,
                     voice: voice,
                     rate: rate,
+                    slide_pause: slidePause,
                     enable_rvc: enableRvc
                 })
             }).then(r => r.json()).then(data => {
@@ -1030,6 +1344,12 @@
         });
 
         // Initialize on startup
+        const vSelectEl = document.getElementById('voice-select');
+        const rSelectEl = document.getElementById('rate-select');
+        if (vSelectEl) vSelectEl.addEventListener('change', updateVoiceSummaryPill);
+        if (rSelectEl) rSelectEl.addEventListener('change', updateVoiceSummaryPill);
+        updateVoiceSummaryPill();
+
         connectSSE();
         checkLatestVideo();
     </script>

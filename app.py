@@ -164,17 +164,24 @@ def extract_and_script():
         result_slides = []
         for i, s in enumerate(slides, start=1):
             script_text = ""
+            has_demo = False
+            code_demo_data = None
             for item in scripts:
                 if item["slide_index"] == i:
                     script_text = item["script"]
+                    has_demo = bool(item.get("has_code_demo", False))
+                    code_demo_data = item.get("code_demo", None)
                     break
 
             result_slides.append({
                 "slide_index": i,
                 "title": s.get("title", f"Slide {i}"),
                 "script": script_text,
+                "has_code_demo": has_demo,
+                "code_demo": code_demo_data,
                 "image_url": f"/api/slide-image/slide_{i:03d}.png"
             })
+
 
         return jsonify({"success": True, "slides": result_slides})
     except Exception as e:
@@ -193,6 +200,10 @@ def start_pipeline():
     voice = data.get("voice", "vi-VN-NamMinhNeural")
     tts_rate = data.get("rate", "-10%")
     enable_rvc = bool(data.get("enable_rvc", False))
+    slide_pause = data.get("slide_pause", None)
+    if slide_pause is not None:
+        try: slide_pause = float(slide_pause)
+        except Exception: slide_pause = None
 
     pptx_path = config.INPUT_DIR / filename
     if not pptx_path.exists():
@@ -221,7 +232,8 @@ def start_pipeline():
                 tts_rate=tts_rate,
                 enable_rvc=enable_rvc,
                 output_filename="output_video.mp4",
-                on_progress=broadcast_progress
+                on_progress=broadcast_progress,
+                slide_pause=slide_pause
             )
             current_job["status"] = "completed"
             current_job["output_video"] = out_video.name
@@ -291,8 +303,8 @@ def download_video(filename):
 
 if __name__ == "__main__":
     print("\n" + "=" * 60)
-    print("🚀 ĐANG KHỞI ĐỘNG MÁY CHỦ AI LECTURE STUDIO")
-    print("👉 Mở trình duyệt tại địa chỉ: http://127.0.0.1:5000")
+    print("ĐANG KHỞI ĐỘNG MÁY CHỦ AI LECTURE STUDIO")
+    print("Mở trình duyệt tại địa chỉ: http://127.0.0.1:5000")
     print("=" * 60 + "\n")
     try:
         from waitress import serve

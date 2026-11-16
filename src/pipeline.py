@@ -41,7 +41,8 @@ def run_full_pipeline(
     tts_rate: Optional[str] = None,
     enable_rvc: bool = False,
     output_filename: str = "output_video.mp4",
-    on_progress: Optional[Callable] = None
+    on_progress: Optional[Callable] = None,
+    slide_pause: Optional[float] = None
 ) -> Path:
     """Thực thi quy trình 5 bước hoàn chỉnh từ PPTX đến Video MP4 với đo đạc thời gian từng giai đoạn."""
     pipeline_start = time.perf_counter()
@@ -84,41 +85,55 @@ def run_full_pipeline(
     t0 = time.perf_counter()
     slides_data = run_extractor(pptx_path)
     t_extract = time.perf_counter() - t0
-    log("Bước 1: Trích xuất Slide", 25, f"Đã xuất thành công {len(slides_data)} trang slide độ phân giải 1080p (⏱️ {format_duration(t_extract)}).", step_key="step_1", elapsed=t_extract)
+    log("Bước 1: Trích xuất Slide", 25, f"Đã xuất thành công {len(slides_data)} trang slide độ phân giải 1080p ({format_duration(t_extract)}).", step_key="step_1", elapsed=t_extract)
 
     # ==================== BƯỚC 2: TẠO KỊCH BẢN ====================
     log("Bước 2: Tạo Kịch Bản", 30, "Đang khởi tạo lời giảng sư phạm cho từng slide...", step_key="step_2")
     t0 = time.perf_counter()
     if custom_scripts:
-        scripts = custom_scripts
+        try:
+            from .script_gen import post_process_code_demos
+        except (ImportError, ValueError):
+            import script_gen
+            post_process_code_demos = script_gen.post_process_code_demos
+        scripts = post_process_code_demos(custom_scripts)
         t_script = time.perf_counter() - t0
-        log("Bước 2: Tạo Kịch Bản", 45, f"Đã nạp {len(scripts)} kịch bản tùy chỉnh của bạn (⏱️ {format_duration(t_script)}).", step_key="step_2", elapsed=t_script)
+        log("Bước 2: Tạo Kịch Bản", 45, f"Đã nạp {len(scripts)} kịch bản tùy chỉnh của bạn ({format_duration(t_script)}).", step_key="step_2", elapsed=t_script)
     else:
         scripts = run_script_generator(slides_data, gemini_api_key=gemini_api_key)
         t_script = time.perf_counter() - t0
-        log("Bước 2: Tạo Kịch Bản", 45, f"AI đã hoàn thành kịch bản sư phạm cho {len(scripts)} slide (⏱️ {format_duration(t_script)}).", step_key="step_2", elapsed=t_script)
+        log("Bước 2: Tạo Kịch Bản", 45, f"AI đã hoàn thành kịch bản sư phạm cho {len(scripts)} slide ({format_duration(t_script)}).", step_key="step_2", elapsed=t_script)
 
     # ==================== BƯỚC 3: TỔNG HỢP GIỌNG NÓI TTS ====================
     selected_rate = tts_rate or config.TTS_RATE or "-10%"
-    log("Bước 3: Tổng Hợp Giọng Nói", 50, f"Đang tổng hợp audio ({voice_name or config.TTS_VOICE} • Tốc độ: {selected_rate})...", step_key="step_3")
+    log("Bước 3: Tổng Hợp Giọng Nói", 50, "Đang tổng hợp giọng đọc bài giảng sư phạm...", step_key="step_3")
     t0 = time.perf_counter()
     base_audio = run_tts_engine(scripts, voice_name=voice_name, rate=selected_rate, on_progress=on_progress)
     t_tts = time.perf_counter() - t0
-    log("Bước 3: Tổng Hợp Giọng Nói", 70, f"Đã tạo hoàn chỉnh {len(base_audio)} file âm thanh lồng tiếng (⏱️ {format_duration(t_tts)}).", step_key="step_3", elapsed=t_tts)
+    log("Bước 3: Tổng Hợp Giọng Nói", 70, f"Đã tạo hoàn chỉnh {len(base_audio)} file âm thanh lồng tiếng ({format_duration(t_tts)}).", step_key="step_3", elapsed=t_tts)
 
     # ==================== BƯỚC 4: TỐI ƯU / CLONE GIỌNG NÓI ====================
     log("Bước 4: Chuyển Đổi Âm Sắc", 75, "Đang xử lý Voice Cloning / Tối ưu âm thanh...", step_key="step_4")
     t0 = time.perf_counter()
     final_audio = run_voice_cloner(base_audio, enable_rvc=enable_rvc)
     t_voice = time.perf_counter() - t0
-    log("Bước 4: Chuyển Đổi Âm Sắc", 85, f"Âm thanh đã sẵn sàng cho bước ghép video (⏱️ {format_duration(t_voice)}).", step_key="step_4", elapsed=t_voice)
+    log("Bước 4: Chuyển Đổi Âm Sắc", 85, f"Âm thanh đã sẵn sàng cho bước ghép video ({format_duration(t_voice)}).", step_key="step_4", elapsed=t_voice)
 
     # ==================== BƯỚC 5: RENDER VIDEO 1080P ====================
-    log("Bước 5: Render Video 1080p", 90, f"Đang xuất video bài giảng cuối cùng ({output_filename})...", step_key="step_5")
+    if slide_pause is not None:
+        try:
+            sp = float(slide_pause)
+            config.SLIDE_PRE_PAUSE = min(1.0, round(sp * 0.35, 2))
+            config.SLIDE_POST_PAUSE = max(0.5, round(sp - config.SLIDE_PRE_PAUSE, 2))
+            config.SLIDE_PAUSE_DURATION = config.SLIDE_PRE_PAUSE + config.SLIDE_POST_PAUSE
+        except Exception:
+            pass
+
+    log("Bước 5: Render Video 1080p", 90, f"Đang xuất video bài giảng cuối cùng ({output_filename} • Dừng chuyển slide: {getattr(config, 'SLIDE_PAUSE_DURATION', 2.3)}s)...", step_key="step_5")
     t0 = time.perf_counter()
     output_video = run_video_renderer(final_audio, output_name=output_filename)
     t_render = time.perf_counter() - t0
-    log("Bước 5: Render Video 1080p", 98, f"Render video hoàn tất (⏱️ {format_duration(t_render)}).", step_key="step_5", elapsed=t_render)
+    log("Bước 5: Render Video 1080p", 98, f"Render video hoàn tất ({format_duration(t_render)}).", step_key="step_5", elapsed=t_render)
 
     total_time = time.perf_counter() - pipeline_start
     stage_timings["total_duration"] = round(total_time, 2)
@@ -126,7 +141,7 @@ def run_full_pipeline(
 
     # Báo cáo tổng kết thời gian
     print("\n" + "=" * 62)
-    print("📊 BẢNG TỔNG KẾT THỜI GIAN THỰC THI TỪNG GIAI ĐOẠN")
+    print("BẢNG TỔNG KẾT THỜI GIAN THỰC THI TỪNG GIAI ĐOẠN")
     print("-" * 62)
     print(f" 1. Trích xuất Slide PPTX    : {format_duration(t_extract):>8}  ({(t_extract/total_time)*100:4.1f}%)")
     print(f" 2. Tạo Kịch Bản AI          : {format_duration(t_script):>8}  ({(t_script/total_time)*100:4.1f}%)")
@@ -134,11 +149,14 @@ def run_full_pipeline(
     print(f" 4. Chuyển Đổi Âm Sắc / RVC  : {format_duration(t_voice):>8}  ({(t_voice/total_time)*100:4.1f}%)")
     print(f" 5. Render Video 1080p       : {format_duration(t_render):>8}  ({(t_render/total_time)*100:4.1f}%)")
     print("-" * 62)
-    print(f" ⏱️ TỔNG THỜI GIAN TOÀN BỘ   : {format_duration(total_time):>8} (100.0%)")
+    print(f" TỔNG THỜI GIAN TOÀN BỘ   : {format_duration(total_time):>8} (100.0%)")
     print("=" * 62 + "\n")
 
-    log("Hoàn Thành", 100, f"Video bài giảng đã được render thành công: {output_video.name} (⏱️ Tổng thời gian: {format_duration(total_time)})")
+    log("Hoàn Thành", 100, f"Video bài giảng đã được render thành công: {output_video.name} (Tổng thời gian: {format_duration(total_time)})")
 
-    # Lưu lại bảng timings vào output_video (dưới dạng thuộc tính metadata tiện truy xuất)
-    setattr(output_video, "timings", stage_timings)
+    # Lưu lại bảng timings vào output_video nếu hỗ trợ
+    try:
+        setattr(output_video, "timings", stage_timings)
+    except Exception:
+        pass
     return output_video

@@ -41,11 +41,11 @@ def main():
         sys.exit(1)
 
     print("=" * 60)
-    print("🎬 KHỞI ĐỘNG AI LECTURE STUDIO PIPELINE")
-    print(f"👉 File Slide: {pptx_path.name}")
-    print(f"👉 Giọng đọc: {args.voice or config.TTS_VOICE}")
-    print(f"👉 Tốc độ đọc: {args.rate}")
-    print(f"👉 Voice Cloning: {'BẬT' if args.enable_rvc else 'TẮT'}")
+    print("KHỞI ĐỘNG AI LECTURE STUDIO PIPELINE")
+    print(f"- File Slide: {pptx_path.name}")
+    print(f"- Giọng đọc: {args.voice or config.TTS_VOICE}")
+    print(f"- Tốc độ đọc: {args.rate}")
+    print(f"- Voice Cloning: {'BẬT' if args.enable_rvc else 'TẮT'}")
     print("=" * 60)
 
     output = run_full_pipeline(
@@ -57,7 +57,7 @@ def main():
         output_filename=args.output
     )
 
-    print(f"\n🎉 HOÀN THÀNH: {output.resolve()}")
+    print(f"\nHOÀN THÀNH: {output.resolve()}")
 
 if __name__ == "__main__":
     main()

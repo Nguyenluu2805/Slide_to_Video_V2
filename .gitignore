@@ -1,4 +1,4 @@
-﻿# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -47,3 +47,9 @@ input/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Code Demo AI dependencies and outputs
+code_demo_ai/node_modules/
+code_demo_ai/out/
+code_demo_ai/*.mp4
+

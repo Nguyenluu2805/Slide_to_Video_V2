@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="studio-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="32" height="32" rx="8" fill="url(#studio-grad)"/>
+  <!-- Cinema presentation frame -->
+  <rect x="5.5" y="7.5" width="21" height="15" rx="3" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Play triangle with glowing apex -->
+  <path d="M13 11.5L19.5 15L13 18.5V11.5Z" fill="#ffffff" stroke="#ffffff" stroke-width="1" stroke-linejoin="round"/>
+  <!-- Neural wave dots at base -->
+  <circle cx="9" cy="26" r="1.2" fill="#ffffff" opacity="0.9"/>
+  <circle cx="16" cy="26" r="1.5" fill="#ffffff"/>
+  <circle cx="23" cy="26" r="1.2" fill="#ffffff" opacity="0.9"/>
+</svg>

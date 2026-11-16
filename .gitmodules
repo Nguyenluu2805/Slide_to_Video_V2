@@ -1,0 +1,3 @@
+[submodule "code_demo_ai"]
+	path = code_demo_ai
+	url = https://github.com/Nguyenluu2805/code-demo-ai.git

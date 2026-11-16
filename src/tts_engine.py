@@ -1,6 +1,6 @@
 """
 Module: tts_engine.py
-Description: Động cơ tổng hợp giọng đọc Text-To-Speech (Microsoft Edge Neural TTS & EverAI Multilingual API).
+Description: Động cơ tổng hợp giọng đọc Text-To-Speech (Microsoft Edge Neural TTS, EverAI Multilingual API & ZeroTTS Offline).
 """
 
 import os
@@ -11,7 +11,7 @@ import asyncio
 import time
 import requests
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Callable
 
 try:
     from . import config
@@ -72,8 +72,8 @@ def clean_text_for_tts(text: str) -> str:
     text = re.sub(r'\s*!\s*', '! ', text)
     text = re.sub(r'\s*\?\s*', '? ', text)
 
-    # Khôi phục dấu ngắt nhịp
-    text = re.sub(r'\s*___PAUSE___\s*', ', ', text)
+    # Khôi phục dấu ngắt nhịp (chấm lửng tạo nhịp ngắt sư phạm)
+    text = re.sub(r'\s*___PAUSE___\s*', '… ', text)
 
     # Tránh lặp dấu phẩy hoặc chấm thừa
     text = re.sub(r',\s*,+', ', ', text)
@@ -236,6 +236,172 @@ def synthesize_everai(
     raise TimeoutError(f"EverAI timeout ({timeout_secs}s) cho request: {request_id}")
 
 
+_zerotts_instance = None
+
+def get_zerotts_instance():
+    """Khởi tạo hoặc lấy lại instance ZeroTTS duy nhất (Singleton) với tự động kích hoạt GPU RTX 3060 Ti (DirectML/CUDA)."""
+    global _zerotts_instance
+    if _zerotts_instance is None:
+        os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
+        try:
+            from zerotts import ZeroTTS
+        except ImportError:
+            voice_tts_src = Path("D:/Voice_TTS/src")
+            if voice_tts_src.exists() and str(voice_tts_src) not in sys.path:
+                sys.path.insert(0, str(voice_tts_src))
+            from zerotts import ZeroTTS
+
+        import onnxruntime as ort
+        available_providers = ort.get_available_providers()
+        providers = []
+        if "CUDAExecutionProvider" in available_providers:
+            providers.append("CUDAExecutionProvider")
+        if "DmlExecutionProvider" in available_providers:
+            providers.append("DmlExecutionProvider")
+        providers.append("CPUExecutionProvider")
+
+        gpu_active = any("CUDA" in p or "Dml" in p for p in providers[:1])
+        device_label = "NVIDIA GPU (DirectML / RTX 3060 Ti)" if gpu_active else "CPU Đa Luồng"
+
+        model_name = getattr(config, "ZEROTTS_MODEL", "zeroweight-ai/ZeroTTS")
+        cpu_threads = getattr(config, "ZEROTTS_THREADS", 6)
+        print(f"[*] Đang tải mô hình ZeroTTS ({model_name}) tăng tốc bởi {device_label}...")
+        _zerotts_instance = ZeroTTS.from_pretrained(
+            model_name,
+            providers=providers,
+            intra_op_num_threads=cpu_threads
+        )
+        print(f"[+] Khởi tạo ZeroTTS thành công trên {device_label}.")
+    return _zerotts_instance
+
+
+def split_script_into_pedagogical_sentences(text: str, max_words: int = 24) -> List[str]:
+    """
+    Tách kịch bản thành các câu tự nhiên, chuẩn sư phạm:
+    - Đảm bảo độ dài mỗi câu từ 8 - 22 từ (không bao giờ vượt quá max_words).
+    - Giúp ZeroTTS GPU chạy cực nhanh (~2.5s - 3.5s / câu) và loại bỏ hoàn toàn hiện tượng kẹt/treo khi câu quá dài.
+    - Tách thông minh theo dấu ngắt câu, gạch ngang và dấu phẩy.
+    """
+    if not text or not text.strip():
+        return ["Nội dung bài giảng."]
+
+    # 1. Bảo vệ số thập phân (3.4, 1.5, ...)
+    text_safe = re.sub(r'(\d+)\.(\d+)', r'\1_DOT_\2', text)
+    # 2. Chuyển dấu gạch ngang dài — thành dấu ngắt câu
+    text_safe = re.sub(r'\s*[\u2014\u2013—]\s*', '. ', text_safe)
+    # 3. Chuẩn hóa dấu chấm lửng thành dấu phẩy
+    text_safe = re.sub(r'\.{3,}|…', ', ', text_safe)
+
+    # Tách theo ranh giới câu chính (. ! ? \n)
+    initial_splits = [s.strip() for s in re.split(r'[.!?\n]+', text_safe) if s.strip()]
+
+    raw_sentences = []
+    for chunk in initial_splits:
+        chunk = chunk.replace('_DOT_', '.')
+        chunk_words = chunk.split()
+
+        if len(chunk_words) <= max_words:
+            raw_sentences.append(chunk)
+        else:
+            # Tách nhỏ theo dấu phẩy hoặc chấm phẩy nếu câu vượt quá max_words
+            sub_clauses = [c.strip() for c in re.split(r'[,;:]+', chunk) if c.strip()]
+            curr_clause = []
+            for clause in sub_clauses:
+                clause_words = clause.split()
+                if len(curr_clause) + len(clause_words) <= max_words:
+                    curr_clause.extend(clause_words)
+                else:
+                    if curr_clause:
+                        raw_sentences.append(" ".join(curr_clause).strip())
+                    curr_clause = list(clause_words)
+
+            if curr_clause:
+                raw_sentences.append(" ".join(curr_clause).strip())
+
+    # Gộp các cụm quá ngắn (< 4 từ) vào câu kế tiếp để giọng đọc liền mạch, tự nhiên
+    final_sentences = []
+    pending_prefix = ""
+    for s in raw_sentences:
+        s = s.strip()
+        if not s: continue
+        if pending_prefix:
+            s = f"{pending_prefix}, {s}"
+            pending_prefix = ""
+
+        words = s.split()
+        if len(words) < 4:
+            pending_prefix = s
+        else:
+            if not s.endswith(('.', '!', '?')):
+                s += '.'
+            final_sentences.append(s)
+
+    if pending_prefix:
+        if final_sentences:
+            final_sentences[-1] = final_sentences[-1].rstrip('.!?') + f", {pending_prefix}."
+        else:
+            final_sentences.append(f"{pending_prefix}.")
+
+    return final_sentences if final_sentences else [text]
+
+
+def synthesize_zerotts(
+    text: str,
+    output_path: Path,
+    voice_code: str = "maichi",
+    on_sentence_progress: Optional[Callable[[int, int], None]] = None,
+) -> Path:
+    """Tổng hợp giọng đọc chất lượng cao, tự nhiên bằng ZeroTTS (Offline ONNX) kèm ngắt nghỉ câu sư phạm."""
+    import numpy as np
+    from zerotts.text_norm.vi_normalizer import normalize_vi_text
+
+    cleaned = clean_text_for_tts(text)
+    sentences = split_script_into_pedagogical_sentences(cleaned)
+
+    tts = get_zerotts_instance()
+    actual_voice = voice_code.split(":", 1)[1] if voice_code.startswith("zerotts:") else voice_code
+
+    audio_chunks = []
+    pause_silence = np.zeros((1, int(tts.sample_rate * 0.45)), dtype=np.float32)
+
+    total_sentences = len(sentences)
+    for i, sent in enumerate(sentences):
+        norm_sent = normalize_vi_text(sent)
+        if not norm_sent.strip():
+            continue
+        if on_sentence_progress:
+            on_sentence_progress(i + 1, total_sentences)
+        audio_chunk = tts.synthesize(norm_sent, voice=actual_voice)
+        audio_chunks.append(audio_chunk)
+        # Chèn khoảng lặng ngắt nghỉ tự nhiên 0.45s giữa các câu hoàn chỉnh (trừ câu cuối)
+        if i < total_sentences - 1:
+            audio_chunks.append(pause_silence)
+
+    if audio_chunks:
+        full_audio = np.concatenate(audio_chunks, axis=-1)
+    else:
+        full_audio = np.zeros((1, tts.sample_rate), dtype=np.float32)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_wav = output_path.parent / f"{output_path.stem}_zerotts_temp.wav"
+
+    try:
+        tts.save_audio(full_audio, str(tmp_wav))
+        # Chuyển đổi sang MP3 tiêu chuẩn cho video pipeline
+        cmd = [
+            "ffmpeg", "-y", "-i", str(tmp_wav.resolve()),
+            "-codec:a", "libmp3lame", "-qscale:a", "2",
+            str(output_path.resolve())
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError(f"FFmpeg MP3 conversion failed: {res.stderr}")
+    finally:
+        tmp_wav.unlink(missing_ok=True)
+
+    return output_path
+
+
 async def synthesize_all_audio_async(
     scripts: List[Dict[str, Any]], 
     voice_name: str = None,
@@ -246,13 +412,14 @@ async def synthesize_all_audio_async(
     config.BASE_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
     # Xóa sạch các file âm thanh cũ trong workspace
-    for old_file in config.BASE_AUDIO_DIR.glob("slide_*.mp3"):
+    for old_file in list(config.BASE_AUDIO_DIR.glob("slide_*.mp3")) + list(config.BASE_AUDIO_DIR.glob("code_demo_*.mp3")):
         try: old_file.unlink()
         except Exception: pass
 
     selected_voice = voice_name or config.TTS_VOICE or "vi-VN-NamMinhNeural"
     selected_rate = rate or config.TTS_RATE or "-10%"
     is_everai = selected_voice.startswith("voice-") or selected_voice.startswith("vi_")
+    is_zerotts = selected_voice.startswith("zerotts:")
 
     audio_records = []
     total = len(scripts)
@@ -260,9 +427,22 @@ async def synthesize_all_audio_async(
     for i, item in enumerate(scripts, start=1):
         idx = item["slide_index"]
         audio_file = config.BASE_AUDIO_DIR / f"slide_{idx:03d}.mp3"
+        title_disp = item.get('title', f'Slide {idx}')[:30]
+
+        # Cập nhật thông báo ngay khi bắt đầu xử lý từng slide
+        start_pct = 50 + int(((i - 1) / total) * 20)
+        if on_progress:
+            on_progress("Bước 3: Tổng Hợp Giọng Nói", start_pct, f"Đang tạo âm thanh Slide {i}/{total}: {title_disp}...")
+
+        def _on_zerotts_sent(curr_s: int, tot_s: int):
+            if on_progress:
+                sub_pct = start_pct + int((curr_s / tot_s) * (20 / total))
+                on_progress("Bước 3: Tổng Hợp Giọng Nói", min(69, sub_pct), f"Slide {i}/{total} [{title_disp}]: Đang đọc câu {curr_s}/{tot_s}...")
 
         try:
-            if is_everai:
+            if is_zerotts:
+                synthesize_zerotts(item["script"], audio_file, voice_code=selected_voice, on_sentence_progress=_on_zerotts_sent)
+            elif is_everai:
                 synthesize_everai(item["script"], audio_file, voice_code=selected_voice)
             else:
                 await synthesize_edge_tts(item["script"], selected_voice, audio_file, rate=selected_rate)
@@ -273,17 +453,131 @@ async def synthesize_all_audio_async(
             except Exception as e2:
                 print(f"[!] Lỗi gTTS fallback Slide {idx}: {e2}")
 
-        pct = 50 + int((i / total) * 20)  # 50% -> 70%
-        title_disp = item.get('title', f'Slide {idx}')[:30]
-        if on_progress:
-            on_progress("Bước 3: Tổng Hợp Giọng Nói", pct, f"Đã lồng tiếng Slide {i}/{total}: {title_disp}")
+        # Nếu slide có demo code thực hành, tổng hợp audio 2 phân đoạn đồng bộ hoàn hảo
+        code_audio_file = None
+        has_demo = bool(item.get("has_code_demo") and item.get("code_demo"))
+        if has_demo:
+            c_spec = item["code_demo"]
+            ed_narr = c_spec.get("editor_narration", "").strip()
+            term_narr = c_spec.get("terminal_narration", "").strip()
+            full_narr = c_spec.get("narration", "").strip()
 
-        audio_records.append({
+            if not ed_narr or not term_narr:
+                try:
+                    from .script_gen import split_demo_narration_phases
+                except (ImportError, ValueError):
+                    import script_gen
+                    split_demo_narration_phases = script_gen.split_demo_narration_phases
+                e_p, t_p = split_demo_narration_phases(full_narr or ed_narr or term_narr)
+                ed_narr = ed_narr or e_p
+                term_narr = term_narr or t_p
+
+            c_spec["editor_narration"] = ed_narr
+            c_spec["terminal_narration"] = term_narr
+            c_spec["narration"] = f"{ed_narr} {term_narr}".strip()
+
+            file_ed = config.BASE_AUDIO_DIR / f"code_demo_ed_{idx:03d}.mp3"
+            file_term = config.BASE_AUDIO_DIR / f"code_demo_term_{idx:03d}.mp3"
+
+            # 1. Tổng hợp audio cho Phân đoạn 1 (Code Editor)
+            if on_progress:
+                on_progress("Bước 3: Tổng Hợp Giọng Nói", start_pct + 1, f"Slide {i}/{total}: Đang đọc thuyết minh VS Code...")
+            try:
+                if is_zerotts:
+                    synthesize_zerotts(ed_narr, file_ed, voice_code=selected_voice)
+                elif is_everai:
+                    synthesize_everai(ed_narr, file_ed, voice_code=selected_voice)
+                else:
+                    await synthesize_edge_tts(ed_narr, selected_voice, file_ed, rate=selected_rate)
+            except Exception as e_ed:
+                print(f"[!] Lỗi TTS Code Editor Slide {idx} ({e_ed}). Fallback gTTS...")
+                synthesize_gtts_fallback(ed_narr, file_ed)
+
+            # 2. Tổng hợp audio cho Phân đoạn 2 (Terminal)
+            if on_progress:
+                on_progress("Bước 3: Tổng Hợp Giọng Nói", start_pct + 1, f"Slide {i}/{total}: Đang đọc thuyết minh Terminal...")
+            try:
+                if is_zerotts:
+                    synthesize_zerotts(term_narr, file_term, voice_code=selected_voice)
+                elif is_everai:
+                    synthesize_everai(term_narr, file_term, voice_code=selected_voice)
+                else:
+                    await synthesize_edge_tts(term_narr, selected_voice, file_term, rate=selected_rate)
+            except Exception as e_tm:
+                print(f"[!] Lỗi TTS Terminal Slide {idx} ({e_tm}). Fallback gTTS...")
+                synthesize_gtts_fallback(term_narr, file_term)
+
+            # 3. Đo thời lượng và tính toán khung hình chuẩn xác cho Remotion
+            import imageio_ffmpeg
+            ffmpeg_bin = imageio_ffmpeg.get_ffmpeg_exe()
+
+            def _get_dur(fpath: Path) -> float:
+                p = subprocess.run(
+                    [ffmpeg_bin, "-i", str(fpath.resolve())],
+                    stderr=subprocess.PIPE, stdout=subprocess.DEVNULL, text=True, errors="replace"
+                )
+                m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", p.stderr)
+                if m:
+                    return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+                return 10.0
+
+            dur_ed = _get_dur(file_ed) if file_ed.exists() else 10.0
+            dur_term = _get_dur(file_term) if file_term.exists() else 8.0
+
+            # Cảnh 1 (Editor): Thời lượng audio + 1.2s nghỉ lấy hơi trước khi chuyển cảnh
+            editor_scene_dur = max(11.0, round(dur_ed + 1.2, 2))
+            # Cảnh 2 (Terminal): 0.4s mở terminal + audio + 2.5s giữ màn hình đọc kết quả
+            terminal_scene_dur = max(9.0, round(0.4 + dur_term + 2.5, 2))
+            total_demo_dur = round(editor_scene_dur + terminal_scene_dur, 2)
+
+            c_spec["editor_scene_dur"] = editor_scene_dur
+            c_spec["terminal_scene_dur"] = terminal_scene_dur
+            c_spec["editor_frames"] = int(round(editor_scene_dur * 30))
+            c_spec["terminal_frames"] = int(round(terminal_scene_dur * 30))
+            c_spec["total_demo_dur"] = total_demo_dur
+
+            # 4. Ghép 2 audio vào 1 master audio đồng bộ khung hình bằng adelay và amix
+            code_audio_file = config.BASE_AUDIO_DIR / f"code_demo_{idx:03d}.mp3"
+            ed_delay_ms = 200
+            term_delay_ms = int(round((editor_scene_dur + 0.4) * 1000))
+
+            filter_complex_str = (
+                f"[0:a]adelay=delays={ed_delay_ms}:all=1[a_ed];"
+                f"[1:a]adelay=delays={term_delay_ms}:all=1[a_term];"
+                f"[a_ed][a_term]amix=inputs=2:dropout_transition=0:normalize=0,apad=pad_dur=2[a_mix]"
+            )
+
+            mix_cmd = [
+                ffmpeg_bin, "-y",
+                "-i", str(file_ed.resolve()),
+                "-i", str(file_term.resolve()),
+                "-filter_complex", filter_complex_str,
+                "-map", "[a_mix]",
+                "-c:a", "libmp3lame",
+                "-b:a", "192k",
+                "-ar", "44100",
+                "-t", str(total_demo_dur),
+                str(code_audio_file.resolve())
+            ]
+            subprocess.run(mix_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+        pct = 50 + int((i / total) * 20)  # 50% -> 70%
+        if on_progress:
+            on_progress("Bước 3: Tổng Hợp Giọng Nói", pct, f"Đã hoàn tất Slide {i}/{total}: {title_disp}")
+
+        record_item = {
             "slide_index": idx,
             "title": item.get("title", f"Slide {idx}"),
             "script": item["script"],
-            "base_audio_path": str(audio_file.resolve())
-        })
+            "base_audio_path": str(audio_file.resolve()),
+            "has_code_demo": has_demo
+        }
+        if has_demo:
+            record_item["code_demo"] = item["code_demo"]
+            if code_audio_file and code_audio_file.exists():
+                record_item["code_audio_path"] = str(code_audio_file.resolve())
+
+        audio_records.append(record_item)
         await asyncio.sleep(0.1)
 
     return audio_records
