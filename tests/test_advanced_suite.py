@@ -111,7 +111,7 @@ class AdvancedSystemTestSuite(unittest.TestCase):
 
     def test_05_checkpoint_save_and_restore(self):
         """TC 5: Kiểm thử cơ chế checkpoint lưu trạng thái và phục hồi."""
-        print("\n[TC 5] Kiểm tra lưu và đọc checkpoint state.json...")
+        print("\n[TC 5] Kiểm tra lưu và đọc checkpoint test_state.json...")
         test_state = {
             "current_step": "parsed",
             "slides_count": 6,
@@ -119,19 +119,21 @@ class AdvancedSystemTestSuite(unittest.TestCase):
             "timestamp": time.time()
         }
 
-        # Lưu checkpoint
+        # Lưu checkpoint vào file test riêng, không đè lên state.json thật
+        test_state_file = config.OUTPUT_DIR / "test_state.json"
         config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        with open(config.STATE_FILE, "w", encoding="utf-8") as f:
+        with open(test_state_file, "w", encoding="utf-8") as f:
             json.dump(test_state, f, ensure_ascii=False, indent=2)
 
-        self.assertTrue(config.STATE_FILE.exists(), "File state.json phải tồn tại sau khi lưu.")
+        self.assertTrue(test_state_file.exists(), "File test_state.json phải tồn tại sau khi lưu.")
 
         # Đọc lại checkpoint
-        with open(config.STATE_FILE, "r", encoding="utf-8") as f:
+        with open(test_state_file, "r", encoding="utf-8") as f:
             loaded_state = json.load(f)
 
         self.assertEqual(loaded_state["current_step"], "parsed")
         self.assertEqual(loaded_state["completed_slides"], [1, 2])
+        test_state_file.unlink(missing_ok=True)
         print("-> [OK] Cơ chế Checkpoint hoạt động chính xác.")
 
 

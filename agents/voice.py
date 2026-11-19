@@ -54,37 +54,49 @@ def get_zerotts_instance():
 def clean_text_for_tts(text: str) -> str:
     """
     Chuẩn hóa văn bản trước khi đọc theo chuẩn V2:
+    - BẢO TOÀN số thập phân (99.9%, 3.5, 30 giây, ...), ngày giờ, phần trăm.
     - Làm sạch markdown, ký tự đặc biệt, dấu gạch nối rườm rà.
-    - BẢO TOÀN thuật ngữ tiếng Anh gốc, tên riêng, ngày giờ, số liệu và phần trăm.
+    - BẢO TOÀN thuật ngữ tiếng Anh gốc và tên riêng.
     """
     if not text:
         return "Nội dung slide bài giảng."
 
-    # Chuyển dấu gạch ngang dài / en-dash thành dấu phẩy
-    cleaned = re.sub(r'[\u2012\u2013\u2014\u2015\u2212\-]+', ', ', text)
-    # Chuẩn hóa ngoặc kép
+    # 1. Bảo vệ số thập phân (99.9%, 3.5, 0.8s, ...) bằng token chữ cái an toàn
+    cleaned = re.sub(r'(\d+)\.(\d+)', r'\1DECIMALDOT\2', text)
+    cleaned = re.sub(r'(\d+),(\d+)', r'\1DECIMALCOMMA\2', cleaned)
+
+    # 2. Chuyển dấu gạch ngang dài / en-dash / em-dash thành dấu phẩy
+    cleaned = re.sub(r'[\u2012\u2013\u2014\u2015\u2212]+', ', ', cleaned)
+    # Dấu gạch ngang độc lập giữa khoảng trắng thành phẩy
+    cleaned = re.sub(r'\s+-\s+', ', ', cleaned)
+
+    # 3. Chuẩn hóa ngoặc kép, nháy đơn
     cleaned = re.sub(r'[\u2018\u2019\'\`]', ' ', cleaned)
     cleaned = re.sub(r'[\u201C\u201D\"]', ' ', cleaned)
 
-    # Ký hiệu cơ bản
+    # 4. Ký hiệu cơ bản
     cleaned = cleaned.replace("&", " và ")
     cleaned = cleaned.replace("→", " chuyển thành ")
     cleaned = cleaned.replace(":", ", ")
     cleaned = cleaned.replace(";", ", ")
 
-    # Bỏ markdown formatting (*, #, _, [, ], (, ), {, }, <, >, |, ~, ^)
+    # 5. Bỏ markdown formatting (*, #, _, [, ], (, ), {, }, <, >, |, ~, ^)
     cleaned = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\/\\\|\~\^\@]', ' ', cleaned)
 
-    # Bảo vệ dấu chấm lửng
+    # 6. Bảo vệ dấu chấm lửng
     cleaned = re.sub(r'\.{3,}|…', ' … ', cleaned)
 
-    # Chuẩn hóa khoảng trắng quanh dấu câu
+    # 7. Chuẩn hóa khoảng trắng quanh dấu câu
     cleaned = re.sub(r'\s*,\s*', ', ', cleaned)
     cleaned = re.sub(r'\s*\.\s*', '. ', cleaned)
     cleaned = re.sub(r'\s*!\s*', '! ', cleaned)
     cleaned = re.sub(r'\s*\?\s*', '? ', cleaned)
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
 
+    # 8. Khôi phục số thập phân nguyên vẹn
+    cleaned = cleaned.replace('DECIMALDOT', '.')
+    cleaned = cleaned.replace('DECIMALCOMMA', ',')
+
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
 
@@ -92,13 +104,14 @@ def split_script_into_pedagogical_sentences(text: str, max_words: int = 24) -> L
     """
     Tách kịch bản thành các câu sư phạm ngắn gọn (tối đa max_words từ):
     - Đảm bảo ZeroTTS chạy nhanh, không bị kẹt khi gặp câu dài.
-    - Giữ trọn nhịp ngắt sư phạm.
+    - Giữ trọn nhịp ngắt sư phạm và bảo vệ số thập phân.
     """
     if not text or not text.strip():
         return ["Nội dung bài giảng."]
 
-    # Bảo vệ số thập phân (3.5, 99.9, ...)
-    safe_text = re.sub(r'(\d+)\.(\d+)', r'\1_DOT_\2', text)
+    # Bảo vệ số thập phân (3.5, 99.9, ...) bằng token an toàn
+    safe_text = re.sub(r'(\d+)\.(\d+)', r'\1DECIMALDOT\2', text)
+    safe_text = re.sub(r'(\d+),(\d+)', r'\1DECIMALCOMMA\2', safe_text)
     safe_text = re.sub(r'\.{3,}|…', ', ', safe_text)
 
     # Tách theo ranh giới câu chính
@@ -106,7 +119,7 @@ def split_script_into_pedagogical_sentences(text: str, max_words: int = 24) -> L
 
     raw_sentences = []
     for chunk in chunks:
-        chunk = chunk.replace('_DOT_', '.')
+        chunk = chunk.replace('DECIMALDOT', '.').replace('DECIMALCOMMA', ',')
         words = chunk.split()
         if len(words) <= max_words:
             raw_sentences.append(chunk)
