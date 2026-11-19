@@ -16,6 +16,7 @@ from langgraph.graph import StateGraph, START, END
 import config
 from agents.parse import parse_presentation
 from agents.script import generate_scripts_with_checkpoint
+from agents.voice import get_audio_duration_seconds
 
 
 class VideoAgentState(TypedDict):
@@ -163,15 +164,47 @@ def node_assemble(state: VideoAgentState) -> Dict[str, Any]:
 
 
 def node_qa_final(state: VideoAgentState) -> Dict[str, Any]:
-    """Node 6: Kiểm thử sản phẩm đầu ra hoàn thiện."""
+    """Node 6: Kiểm thử chất lượng và tính toàn vẹn của sản phẩm đầu ra."""
     print("\n" + "=" * 60)
     print("📍 [NODE 6: QA FINAL] Kiểm tra sản phẩm đầu ra hoàn thiện...")
     print("=" * 60)
-    if state.get("error"):
-        print(f"[!] Quy trình kết thúc với cảnh báo: {state['error']}")
-    else:
-        print("[+] Toàn bộ quy trình hoàn tất thành công!")
-    return {"current_node": "completed"}
+
+    final_vid = Path(state.get("final_video") or config.FINAL_VIDEO_FILE)
+    final_s = Path(state.get("final_srt") or config.FINAL_SRT_FILE)
+
+    errors = []
+    if not final_vid.exists() or final_vid.stat().st_size < 100000:
+        errors.append(f"File video thành phẩm không tồn tại hoặc kích thước quá nhỏ: {final_vid}")
+    if not final_s.exists() or final_s.stat().st_size < 50:
+        errors.append(f"File phụ đề .srt không tồn tại hoặc rỗng: {final_s}")
+
+    slides = state.get("slides", [])
+    for it in slides:
+        sid = it["slide"]["id"]
+        sc = it.get("scene", {})
+        af = config.PROJECT_ROOT / sc.get("audio_file", "")
+        vf = config.PROJECT_ROOT / sc.get("visual", "")
+        if not af.exists():
+            errors.append(f"Slide {sid} thiếu file audio: {af}")
+        if not vf.exists():
+            errors.append(f"Slide {sid} thiếu file video: {vf}")
+
+    if errors:
+        print("[!] Phát hiện lỗi tại QA Final:")
+        for err in errors:
+            print(f"    - {err}")
+        return {"current_node": "error", "error": "; ".join(errors)}
+
+    # Lấy thông tin video hoàn chỉnh
+    vid_size_mb = round(final_vid.stat().st_size / (1024 * 1024), 2)
+    vid_dur = get_audio_duration_seconds(final_vid)
+
+    print(f"[+] QA Final ĐẠT CHUẨN:")
+    print(f"    🎬 Video thành phẩm : {final_vid.resolve()} ({vid_size_mb} MB, {vid_dur:.1f}s)")
+    print(f"    📄 Phụ đề SRT       : {final_s.resolve()}")
+    print(f"    📊 Tổng số slide    : {len(slides)} slide")
+    print("=" * 60)
+    return {"current_node": "completed", "error": None}
 
 
 def router_after_step(state: VideoAgentState) -> str:
