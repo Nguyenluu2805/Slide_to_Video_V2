@@ -30,10 +30,11 @@ SCRIPT_RESPONSE_SCHEMA = {
 
 # Danh sách model ưu tiên tự động fallback
 FALLBACK_MODELS = [
-    getattr(config, "GEMINI_MODEL", "gemini-2.5-flash"),
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-3-flash-preview"
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-3-flash-preview",
+    getattr(config, "GEMINI_MODEL", "gemini-2.5-flash")
 ]
 
 
@@ -87,7 +88,7 @@ def call_gemini_api_with_schema(prompt: str, model_name: str = None) -> Tuple[Di
 
                 elif resp.status_code in [429, 503]:
                     # Lỗi quá tải rate limit hoặc server bận
-                    wait_time = 5 * attempt
+                    wait_time = 10 * attempt
                     print(f"[*] Gemini API ({current_model}) báo mã {resp.status_code}. Tạm dừng {wait_time}s thử lại...")
                     time.sleep(wait_time)
                 elif resp.status_code == 404:

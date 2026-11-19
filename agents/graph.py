@@ -226,13 +226,13 @@ def build_pipeline_graph():
     builder.add_node("assemble", node_assemble)
     builder.add_node("qa_final", node_qa_final)
 
-    # Nối luồng xử lý
+    # Nối luồng xử lý với điều hướng có điều kiện
     builder.add_edge(START, "parse")
-    builder.add_edge("parse", "script")
-    builder.add_edge("script", "voice")
-    builder.add_edge("voice", "render")
-    builder.add_edge("render", "assemble")
-    builder.add_edge("assemble", "qa_final")
+    builder.add_conditional_edges("parse", router_after_step, {"next": "script", END: END})
+    builder.add_conditional_edges("script", router_after_step, {"next": "voice", END: END})
+    builder.add_conditional_edges("voice", router_after_step, {"next": "render", END: END})
+    builder.add_conditional_edges("render", router_after_step, {"next": "assemble", END: END})
+    builder.add_conditional_edges("assemble", router_after_step, {"next": "qa_final", END: END})
     builder.add_edge("qa_final", END)
 
     return builder.compile()
@@ -246,6 +246,21 @@ def run_pipeline(
     voice: Optional[str] = None
 ) -> Dict[str, Any]:
     """Hàm thực thi chính của LangGraph Pipeline."""
+    if reset_mode:
+        print("[*] Chế độ --reset: Dọn dẹp toàn bộ dữ liệu checkpoint, audio và video cũ...")
+        config.STATE_FILE.unlink(missing_ok=True)
+        (config.OUTPUT_DIR / "script.json").unlink(missing_ok=True)
+        if config.AUDIO_DIR.exists():
+            for f in config.AUDIO_DIR.glob("slide_*.wav"):
+                f.unlink(missing_ok=True)
+        if config.VIDEO_DIR.exists():
+            for f in config.VIDEO_DIR.glob("*.mp4"):
+                f.unlink(missing_ok=True)
+            for f in config.VIDEO_DIR.glob("*.ass"):
+                f.unlink(missing_ok=True)
+            for f in config.VIDEO_DIR.glob("*.srt"):
+                f.unlink(missing_ok=True)
+
     graph = build_pipeline_graph()
 
     initial_state: VideoAgentState = {

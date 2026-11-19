@@ -19,7 +19,12 @@ KEYWORD_PATTERNS = [
     r"Human-In-The-Loop", r"Infinite Tool Loops?", r"Semantic Reasoning",
     r"Single Source of Truth", r"Deterministic Backbone", r"Non-deterministic",
     r"QA Checker Guardrail", r"Best Practices", r"Production",
-    r"\d+\.?\d*\s?%", r"\d+\s?(?:giây|đô|dòng|lần)",
+    # Thương hiệu & Chuyên ngành Sức khỏe Hydro
+    r"Kim Long Phát", r"(?:Nước|Khí)?\s*giàu Hydro", r"Hydro",
+    r"Tô Văn Trực", r"Thạc sĩ(?:\s+Kỹ thuật Điện)?", r"Cao đẳng Kỹ nghệ II",
+    r"Chăm Sóc Sức Khỏe(?: Chủ Động)?",
+    # Số liệu, phần trăm, đơn vị
+    r"\d+\.?\d*\s?%", r"\d+\s?(?:giây|đô|dòng|lần|năm|gia đình|tháng)",
 ]
 _KEYWORD_RE = re.compile("(" + "|".join(KEYWORD_PATTERNS) + ")", re.IGNORECASE)
 

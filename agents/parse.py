@@ -7,6 +7,7 @@ Tuyệt đối không vẽ card PIL giả.
 
 import os
 import sys
+import json
 import shutil
 import logging
 import subprocess
@@ -159,6 +160,56 @@ def export_presentation_slides(pptx_path: Path, output_dir: Path) -> Dict[int, P
     )
 
 
+def ocr_slide_with_vision(img_path: Path) -> Dict[str, Any]:
+    """Sử dụng Gemini Vision để nhận diện nội dung trên slide đồ họa phẳng."""
+    import base64
+    import requests
+    if not img_path.exists():
+        return {}
+
+    try:
+        with open(img_path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("utf-8")
+
+        models = [
+            "gemini-3.1-flash-lite",
+            "gemini-3.5-flash-lite",
+            "gemini-3-flash-preview",
+            "gemini-2.5-flash-lite"
+        ]
+        api_key = config.GEMINI_API_KEY
+        if not api_key:
+            return {}
+
+        prompt = (
+            "Trích xuất chính xác thông tin từ ảnh slide này dưới dạng JSON:\n"
+            "{\n"
+            "  \"title\": \"Tiêu đề chính của slide\",\n"
+            "  \"bullets\": [\"Nội dung hoặc gạch đầu dòng 1\", \"Nội dung 2\"]\n"
+            "}\n"
+            "Chỉ trả về JSON thuần túy."
+        )
+
+        for m in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+            payload = {
+                "contents": [{
+                    "parts": [
+                        {"text": prompt},
+                        {"inline_data": {"mime_type": "image/png", "data": b64}}
+                    ]
+                }],
+                "generationConfig": {"responseMimeType": "application/json"}
+            }
+            resp = requests.post(url, json=payload, timeout=25)
+            if resp.status_code == 200:
+                raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                return json.loads(raw)
+    except Exception as e:
+        logger.warning(f"Lỗi khi chạy Vision OCR cho slide {img_path.name}: {e}")
+    return {}
+
+
 def parse_presentation(pptx_path: Path, output_slides_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     """
     Phân tích file presentation .pptx và xuất hình ảnh slide thật.
@@ -236,6 +287,20 @@ def parse_presentation(pptx_path: Path, output_slides_dir: Optional[Path] = None
         has_notes = len(notes) > 0
         is_generic_title = title == f"Slide {idx}"
 
+        img_path = images_map.get(idx)
+        if not has_bullets and not has_notes and is_generic_title and img_path and img_path.exists():
+            ocr_data = ocr_slide_with_vision(img_path)
+            if ocr_data.get("title"):
+                title = ocr_data["title"]
+                is_generic_title = False
+            if ocr_data.get("bullets"):
+                bullets = ocr_data["bullets"]
+                has_bullets = True
+            if has_bullets or not is_generic_title:
+                warn = f"Slide {idx} được trích xuất nội dung từ ảnh đồ họa bằng Gemini Vision OCR"
+                warnings.append(warn)
+                logger.info(warn)
+
         if not has_bullets and not has_notes and is_generic_title:
             warn = f"Slide {idx} hoàn toàn trống (không có title, bullets, notes)"
             warnings.append(warn)
@@ -245,7 +310,6 @@ def parse_presentation(pptx_path: Path, output_slides_dir: Optional[Path] = None
             warnings.append(warn)
             logger.info(warn)
 
-        img_path = images_map.get(idx)
         img_rel_path = str(img_path.relative_to(config.PROJECT_ROOT)) if img_path else f"output/slides/slide_{idx:03d}.png"
 
         slide_entry = {
