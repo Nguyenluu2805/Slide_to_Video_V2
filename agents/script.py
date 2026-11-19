@@ -28,12 +28,12 @@ SCRIPT_RESPONSE_SCHEMA = {
     "required": ["slide_id", "script", "bullets_covered"]
 }
 
-# Danh sách model ưu tiên tự động fallback nếu model chính bị quá tải hoặc deprecate
+# Danh sách model ưu tiên tự động fallback
 FALLBACK_MODELS = [
-    getattr(config, "GEMINI_MODEL", "gemini-3-flash-preview"),
-    "gemini-3-flash-preview",
-    "gemini-3.1-flash-lite",
-    "gemini-3.8-flash"
+    getattr(config, "GEMINI_MODEL", "gemini-2.5-flash"),
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview"
 ]
 
 
