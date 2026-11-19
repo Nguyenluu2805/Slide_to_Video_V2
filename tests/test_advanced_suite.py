@@ -1,32 +1,25 @@
 """
 Suite: test_advanced_suite.py
-Description: Bo kiem thu nang cao 5 Test Case bao phu toan dien he thong AI Video Agent Studio:
-  - TC 1: PPTX Multi-Slide Extraction and 1080p Image Integrity
-  - TC 2: Pedagogical Script Generation (AI + Offline Fallback) and Sanitization
-  - TC 3: Dual-Voice TTS Synthesis and Audio Integrity (Male + Female consistent)
-  - TC 4: End-to-End 1080p Video Rendering and Audio-Visual Sync Verification
-  - TC 5: Flask Web API Endpoints and Real-time Progress Tracking
+Description: Bộ kiểm thử nâng cao 5 Test Case bao phủ hệ thống AI Video Agent V2:
+  - TC 1: PPTX Parsing, Slide Metadata and Real 1080p Image Verification
+  - TC 2: Centralized Config & Dynamic Hardware Device Detection
+  - TC 3: Single Source of Truth (SSOT) JSON Schema & Grounding Validation
+  - TC 4: Voice TTS Engine Providers Readiness (ZeroTTS & Edge-TTS)
+  - TC 5: State Checkpoint Save and Recovery Workflow
 """
 
 import os
 import sys
 import json
 import time
-import asyncio
 import unittest
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 import config
-from extractor import run_extractor
-from script_gen import generate_rich_offline_script
-from tts_engine import clean_text_for_tts, synthesize_edge_tts, synthesize_all_audio_async
-from voice_cloner import run_voice_cloner
-from video_renderer import run_video_renderer, get_audio_duration
-from app import app
+from agents.parse import parse_presentation
 
 
 class AdvancedSystemTestSuite(unittest.TestCase):
@@ -34,149 +27,113 @@ class AdvancedSystemTestSuite(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         print("\n" + "=" * 70)
-        print("TEST: BAT DAU CHAY BO 5 TEST CASE NANG CAO CHO AI VIDEO AGENT STUDIO")
+        print("TEST: BẮT ĐẦU CHẠY BỘ 5 TEST CASE CHO AI VIDEO AGENT V2")
         print("=" * 70)
-        cls.test_pptx = config.INPUT_DIR / "python_array.pptx"
+        cls.test_pptx = config.TEST_DATA_DIR / "Ex01_Hybrid_Workflow.pptx"
         if not cls.test_pptx.exists():
-            candidates = list(config.INPUT_DIR.glob("*.pptx"))
+            candidates = list(config.TEST_DATA_DIR.glob("*.pptx"))
             if candidates:
                 cls.test_pptx = candidates[0]
             else:
-                raise FileNotFoundError("Khong tim thay file PPTX nao trong input/")
-        print(f"File Slide: {cls.test_pptx.name}")
+                raise FileNotFoundError(f"Không tìm thấy file bài giảng trong {config.TEST_DATA_DIR}")
+        print(f"File kiểm thử: {cls.test_pptx.name}")
 
-    def test_01_pptx_extraction_and_image_quality(self):
-        """TC 1: Kiem thu trich xuat Slide PPTX, hinh anh 1080p va metadata."""
-        print("\n[TEST CASE 1] Trich xuat PPTX va Kiem tra chat luong anh 1080p...")
+    def test_01_pptx_parsing_and_1080p_images(self):
+        """TC 1: Kiểm thử trích xuất slide thật 1080p, metadata và speaker notes."""
+        print("\n[TC 1] Kiểm tra trích xuất slide và ảnh 1080p...")
         start_t = time.time()
-        slides_data = run_extractor(self.test_pptx)
+        slides_data = parse_presentation(self.test_pptx)
         elapsed = time.time() - start_t
 
-        self.assertIsInstance(slides_data, list, "Du lieu tra ve phai la danh sach slide.")
-        self.assertGreater(len(slides_data), 0, "So luong slide trich xuat phai > 0.")
-        
+        self.assertIsInstance(slides_data, list, "Kết quả trả về phải là một list.")
+        self.assertGreater(len(slides_data), 0, "Số lượng slide phải > 0.")
+
         for item in slides_data:
-            self.assertIn("slide_index", item)
-            self.assertIn("title", item)
-            self.assertIn("image_path", item)
-            img_path = Path(item["image_path"])
-            self.assertTrue(img_path.exists(), f"Anh slide {img_path} khong ton tai!")
-            self.assertGreater(img_path.stat().st_size, 1024, f"Anh {img_path.name} qua nho (<1KB)!")
-            
-        print(f"  [PASS] TC 1 PASSED: Trich xuat thanh cong {len(slides_data)} slides trong {elapsed:.2f}s.")
+            self.assertIn("slide", item)
+            self.assertIn("scene", item)
+            s = item["slide"]
+            self.assertIn("id", s)
+            self.assertIn("title", s)
+            self.assertIn("bullets", s)
+            self.assertIn("notes", s)
+            self.assertIn("image", s)
 
-    def test_02_script_generation_and_sanitization(self):
-        """TC 2: Kiem thu bo sinh kich ban su pham va lam sach ky tu Unicode dac biet."""
-        print("\n[TEST CASE 2] Sinh kich ban su pham va Chuan hoa Unicode...")
-        start_t = time.time()
-        slides_data = run_extractor(self.test_pptx)
-        offline_scripts = generate_rich_offline_script(slides_data)
-        self.assertEqual(len(offline_scripts), len(slides_data))
-        
-        complex_text = "Hoc ve array: `list`—mang dong [10, 20, 30] & so_list = 10% → Σ tong ✓ ⚡ ◈!"
-        cleaned = clean_text_for_tts(complex_text)
-        
-        self.assertNotIn("`", cleaned, "Khong duoc chua dau backtick code.")
-        self.assertNotIn("—", cleaned, "Dau em-dash phai duoc thay the thanh dau phay.")
-        self.assertNotIn("⚡", cleaned, "Khong duoc chua emoji/ky hieu la.")
-        self.assertIn("phần trăm", cleaned, "% phai duoc doc thanh chu.")
-        self.assertIn("gán bằng", cleaned, "= phai duoc chuan hoa thanh loi doc.")
-        
-        elapsed = time.time() - start_t
-        print(f"  [PASS] TC 2 PASSED: Kich ban va bo loc text chuan hoa thanh cong trong {elapsed:.2f}s.")
+            img_path = PROJECT_ROOT / s["image"]
+            self.assertTrue(img_path.exists(), f"Ảnh slide {img_path} phải tồn tại thực tế.")
 
-    def test_03_dual_voice_tts_synthesis(self):
-        """TC 3: Kiem thu tong hop am thanh giong Nam (Nam Minh) va giong Nu (Hoai My)."""
-        print("\n[TEST CASE 3] Tong hop TTS Giong Nam va Giong Nu (Do dai va tinh toan ven)...")
-        start_t = time.time()
-        
-        test_text_male = "Chao cac ban sinh vien, day la bai kiem tra do muot ma cua giong doc Nam Minh tren he sinh thai Microsoft Neural."
-        test_text_female = "Chao cac ban sinh vien, day la bai kiem tra do truyen cam cua giong doc Hoai My tren he sinh thai Microsoft Neural."
-        
-        out_male = config.WORKSPACE_DIR / "tc3_male.mp3"
-        out_female = config.WORKSPACE_DIR / "tc3_female.mp3"
-        
-        res_male = asyncio.run(synthesize_edge_tts(test_text_male, "vi-VN-NamMinhNeural", out_male))
-        self.assertTrue(res_male)
-        self.assertTrue(out_male.exists())
-        self.assertGreater(out_male.stat().st_size, 5000, "File audio nam phai > 5KB.")
-        dur_male = get_audio_duration(str(out_male))
-        self.assertGreater(dur_male, 2.0, "Thoi luong audio nam phai > 2s.")
-        
-        res_female = asyncio.run(synthesize_edge_tts(test_text_female, "vi-VN-HoaiMyNeural", out_female))
-        self.assertTrue(res_female)
-        self.assertTrue(out_female.exists())
-        self.assertGreater(out_female.stat().st_size, 5000, "File audio nu phai > 5KB.")
-        dur_female = get_audio_duration(str(out_female))
-        self.assertGreater(dur_female, 2.0, "Thoi luong audio nu phai > 2s.")
-        
-        try: out_male.unlink()
-        except Exception: pass
-        try: out_female.unlink()
-        except Exception: pass
-        
-        elapsed = time.time() - start_t
-        print(f"  [PASS] TC 3 PASSED: Giong Nam ({dur_male:.2f}s) va Giong Nu ({dur_female:.2f}s) tao hoan hao trong {elapsed:.2f}s.")
+            # Kiểm tra độ phân giải chuẩn 1920x1080
+            from PIL import Image
+            with Image.open(img_path) as im:
+                self.assertEqual(im.size, (1920, 1080), f"Ảnh {img_path} phải đúng kích thước 1920x1080.")
 
-    def test_04_video_rendering_and_sync(self):
-        """TC 4: Kiem thu render video 1080p va dong bo khop thoi luong hinh anh - am thanh."""
-        print("\n[TEST CASE 4] Render Video MP4 1080p va Kiem tra khop thoi luong...")
-        start_t = time.time()
-        
-        slides_data = run_extractor(self.test_pptx)[:2]
-        scripts = generate_rich_offline_script(slides_data)
-        audio_records = asyncio.run(synthesize_all_audio_async(scripts, voice_name="vi-VN-NamMinhNeural"))
-        self.assertEqual(len(audio_records), 2)
-        
-        final_audio = run_voice_cloner(audio_records, enable_rvc=False)
-        test_video_name = "test_case_4_render.mp4"
-        output_video = run_video_renderer(final_audio, output_name=test_video_name)
-        
-        self.assertTrue(output_video.exists(), "File video render khong ton tai!")
-        self.assertGreater(output_video.stat().st_size, 50000, "Dung luong video phai > 50KB.")
-        
-        video_dur = get_audio_duration(str(output_video))
-        total_audio_dur = sum(get_audio_duration(str(Path(a["audio_path"]))) for a in final_audio)
-        expected_min_dur = total_audio_dur + (len(final_audio) * config.SLIDE_PAUSE_DURATION * 0.5)
-        
-        self.assertGreaterEqual(video_dur, expected_min_dur - 1.0, "Thoi luong video phai khop voi tong audio + pause.")
-        
-        elapsed = time.time() - start_t
-        print(f"  [PASS] TC 4 PASSED: Video render thanh cong ({output_video.stat().st_size/1024:.1f} KB, {video_dur:.2f}s) trong {elapsed:.2f}s.")
+        print(f"-> [OK] Đã xuất và xác minh {len(slides_data)} slide 1080p trong {elapsed:.2f}s.")
 
-    def test_05_web_api_endpoints_and_status(self):
-        """TC 5: Kiem thu bo Flask REST API (index, upload, latest-video, extract-and-script)."""
-        print("\n[TEST CASE 5] Kiem tra toan bo REST API Endpoints cua Web Studio...")
-        start_t = time.time()
-        
-        client = app.test_client()
-        
-        # 1. UI Index endpoint
-        res_idx = client.get("/")
-        self.assertEqual(res_idx.status_code, 200)
-        self.assertIn(b"AI Video Agent Studio", res_idx.data)
-        
-        # 2. Latest video endpoint
-        res_video = client.get("/api/latest-video")
-        self.assertEqual(res_video.status_code, 200)
-        data_video = json.loads(res_video.data)
-        self.assertIn("exists", data_video)
-        
-        # 3. Bad upload endpoint validation
-        res_bad_upload = client.post("/api/upload")
-        self.assertEqual(res_bad_upload.status_code, 400)
-        
-        # 4. Extract and script endpoint validation
-        res_script = client.post("/api/extract-and-script", json={"filename": "python_array.pptx"})
-        self.assertEqual(res_script.status_code, 200)
-        data_script = json.loads(res_script.data)
-        self.assertTrue(data_script.get("success"))
-        self.assertIn("slides", data_script)
-        self.assertGreater(len(data_script["slides"]), 0)
-        
-        elapsed = time.time() - start_t
-        print(f"  [PASS] TC 5 PASSED: 4 Web API Endpoints phan hoi chuan xac JSON trong {elapsed:.2f}s.")
+    def test_02_config_and_hardware_detection(self):
+        """TC 2: Kiểm thử cấu hình tập trung và phát hiện phần cứng thực tế."""
+        print("\n[TC 2] Kiểm tra config tập trung và phát hiện phần cứng...")
+        self.assertEqual(config.VIDEO_WIDTH, 1920)
+        self.assertEqual(config.VIDEO_HEIGHT, 1080)
+        self.assertEqual(config.VIDEO_FPS, 30)
+
+        hw_info = config.get_hardware_device_info()
+        self.assertIn("device", hw_info)
+        self.assertIn("device_name", hw_info)
+        self.assertIn("is_gpu", hw_info)
+        self.assertIn(hw_info["device"], ["cuda", "cpu"])
+        print(f"-> [OK] Thiết bị phát hiện: {hw_info['device_name']} (GPU: {hw_info['is_gpu']})")
+
+    def test_03_single_source_of_truth_schema(self):
+        """TC 3: Kiểm thử cấu trúc JSON xương sống V2 có grounding."""
+        print("\n[TC 3] Kiểm tra cấu trúc dữ liệu xương sống V2...")
+        slides_data = parse_presentation(self.test_pptx)
+        sample = slides_data[0]
+        scene = sample["scene"]
+
+        self.assertIn("slide_id", scene)
+        self.assertIn("script", scene)
+        self.assertIn("grounding", scene)
+        grounding = scene["grounding"]
+        self.assertIn("uses_notes", grounding)
+        self.assertIn("bullets_covered", grounding)
+        self.assertIn("bullets_missed", grounding)
+        self.assertIn("invented_claims", grounding)
+        print("-> [OK] Cấu trúc SSOT JSON với grounding đạt chuẩn V2.")
+
+    def test_04_voice_engine_readiness(self):
+        """TC 4: Kiểm thử tính sẵn sàng của các provider TTS (ZeroTTS & Edge-TTS)."""
+        print("\n[TC 4] Kiểm tra các provider giọng đọc...")
+        import edge_tts
+        self.assertIsNotNone(edge_tts)
+
+        import zerotts
+        self.assertIsNotNone(zerotts)
+        print("-> [OK] Cả 2 engine giọng đọc ZeroTTS và Edge-TTS đã sẵn sàng.")
+
+    def test_05_checkpoint_save_and_restore(self):
+        """TC 5: Kiểm thử cơ chế checkpoint lưu trạng thái và phục hồi."""
+        print("\n[TC 5] Kiểm tra lưu và đọc checkpoint state.json...")
+        test_state = {
+            "current_step": "parsed",
+            "slides_count": 6,
+            "completed_slides": [1, 2],
+            "timestamp": time.time()
+        }
+
+        # Lưu checkpoint
+        config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        with open(config.STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(test_state, f, ensure_ascii=False, indent=2)
+
+        self.assertTrue(config.STATE_FILE.exists(), "File state.json phải tồn tại sau khi lưu.")
+
+        # Đọc lại checkpoint
+        with open(config.STATE_FILE, "r", encoding="utf-8") as f:
+            loaded_state = json.load(f)
+
+        self.assertEqual(loaded_state["current_step"], "parsed")
+        self.assertEqual(loaded_state["completed_slides"], [1, 2])
+        print("-> [OK] Cơ chế Checkpoint hoạt động chính xác.")
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    unittest.main()

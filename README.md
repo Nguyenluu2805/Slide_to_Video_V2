@@ -1,97 +1,146 @@
-# 🎬 AI Video Agent Generator Studio (v2.0 PRO)
+# 🎬 AI Video Agent V2 — Chuyển Đổi Slide Thuyết Trình Thành Video
 
-Hệ thống **AI Agent tự động hóa toàn diện quy trình chuyển đổi bài giảng PowerPoint (`.pptx`) thành Video bài giảng chất lượng cao 1080p (`.mp4`)**. Tích hợp kịch bản sư phạm tự nhiên (Google Gemini / OpenAI / Offline Engine), lồng tiếng song ngữ Việt - Anh đa dạng (Microsoft Neural TTS / EverAI Multilingual API), tùy chọn Voice Cloning RVC trên GPU và Web Studio Dark SaaS hiện đại.
-
----
-
-## ✨ Tính Năng Nổi Bật
-
-1. **Trích xuất Slide Tự Động (`src/extractor.py`)**:
-   - Trích xuất toàn bộ slide thành hình ảnh 1080p Full HD sắc nét bằng PowerPoint COM API (kèm bộ vẽ Slide Card dự phòng).
-   - Thu thập tiêu đề, nội dung gạch đầu dòng, bảng biểu và Speaker Notes (Ghi chú diễn giả).
-
-2. **Kịch Bản Sư Phạm Diễn Thuyết (`src/script_gen.py`)**:
-   - Ứng dụng Google Gemini / OpenAI để chuyển đổi văn bản thô thành lời giảng sư phạm lôi cuốn.
-   - Nghệ thuật dấu câu tạo nhịp điệu (Prosody Punctuation) với câu hỏi gợi mở, ngắt nghỉ tự nhiên như giảng viên trực tiếp.
-   - Tự động kích hoạt bộ sinh kịch bản sư phạm chuyên sâu Offline khi không có kết nối internet hoặc API Key.
-
-3. **Phòng Thu Lồng Tiếng Đa Năng (`src/tts_engine.py`)**:
-   - **Microsoft Edge Neural TTS**: Giọng *Nam Minh* (Trầm ấm, chuẩn giảng dạy) & *Hoài My* (Truyền cảm, rõ ràng).
-   - **EverAI Multilingual API**: Hỗ trợ thuật ngữ tiếng Anh tự nhiên và tích hợp Giọng Clone cá nhân hóa (*Nguyên*).
-
-4. **Chuyển Đổi Âm Sắc & Voice Cloning (`src/voice_cloner.py`, `src/voice_utils.py`)**:
-   - Tự động trích xuất âm thanh sạch từ video bài giảng cũ (.mp4, .mov, .wav) để học chất giọng người dùng.
-   - Tùy chọn chuyển đổi âm sắc nơ-ron qua RVC V2 GPU RTX 3060 Ti.
-
-5. **Lắp Ráp Video Tự Động (`src/video_renderer.py`)**:
-   - Tự động đo thời lượng audio từng slide, căn khớp thời lượng slide 100% và xuất file MP4 chuẩn H.264/AAC.
-
-6. **Web Studio Hiện Đại & Hệ Thống Toast Thông Báo (`app.py`, `templates/index.html`)**:
-   - Giao diện Dark SaaS phong cách AI Studio (Glassmorphism).
-   - **Hệ thống Toast Notification động**: Thông báo trạng thái thời gian thực (*Success, Info, Warning, Error*), không dùng alert pop-up.
-   - **Bộ Icon SVG Vector độc lập**: Nhúng trực tiếp, tải tức thì 0ms, không phụ thuộc font CDN bên ngoài.
-   - **Trình chỉnh sửa kịch bản đa slide**: Xem trước hình ảnh và tùy biến lời giảng trước khi render video.
+Hệ thống **AI Agent tự động hóa chuyển đổi bài giảng PowerPoint (`.pptx`) kèm Speaker Notes thành Video thuyết trình chuyên nghiệp 1080p (`.mp4`)**. Tích hợp kịch bản sư phạm tự nhiên (Google Gemini 2.5 Flash), lồng tiếng tiếng Việt chất lượng cao (ZeroTTS ONNX local / Microsoft Edge Neural TTS dự phòng), phụ đề `.srt` khớp timestamp thật từ Faster-Whisper và điều phối luồng xử lý bằng LangGraph State Machine có checkpoint phục hồi sau sự cố.
 
 ---
 
-## 📁 Cấu Trúc Dự Án Chuẩn Hóa
+## 🎯 Mục Tiêu V2 — Chỉ 1 Việc Duy Nhất
+
+* **Đầu vào:** 1 file `.pptx` thuyết trình + Speaker Notes.
+* **Đầu ra:** 1 video thuyết trình `.mp4` 1920x1080 @ 30fps, giọng đọc tiếng Việt tự nhiên, phụ đề `.srt` khớp timestamp thật, kịch bản bám sát nội dung slide.
+* **Bộ kiểm thử chuẩn:** `test_data/Ex01_Hybrid_Workflow.pptx` (Chương Ex01: Kiến Trúc Hybrid Workflow).
+
+> [!NOTE]
+> **Định hướng V2:** Tập trung hoàn toàn vào video thuyết trình bài giảng chất lượng cao. Đã loại bỏ hoàn toàn các thành phần dư thừa: Code demo, Remotion, RVC, ElevenLabs, EverAI và bộ vẽ Slide Card giả.
+
+---
+
+## ✨ Điểm Cốt Lõi Của Kiến Trúc V2
+
+1. **Trích xuất Slide Thật 1080p (`agents/parse.py`)**:
+   * **Ưu tiên 1:** PowerPoint COM trên Windows (`win32com.client`).
+   * **Ưu tiên 2:** LibreOffice headless (`soffice --headless --convert-to pdf` rồi xuất PNG 1920x1080).
+   * **Không có cả 2:** Dừng và báo lỗi rõ ràng. Tuyệt đối không vẽ card PIL giả.
+   * **Validation:** Cảnh báo các slide rỗng, thiếu title, bullets hoặc speaker notes vào `state.json`.
+
+2. **Kịch Bản Bám Sát Slide & Speaker Notes (`agents/script.py`)**:
+   * Quy tắc 1 slide = 1 call Gemini kèm `response_schema` bắt buộc.
+   * Nguồn: Speaker notes là nguồn chính (70%), bullets + title là nguồn phụ (30%). Cấm bịa đặt số liệu ngoài slide.
+   * Độ dài: 150–220 từ tiếng Việt (~60–90 giây/slide).
+   * Cấu trúc: Mở (nối từ slide trước) -> Thân (diễn giải notes + bullets) -> Chốt (chuyển sang slide sau). Giữ nguyên thuật ngữ tiếng Anh gốc.
+
+3. **QA Kịch Bản Bằng Code (`agents/qa.py`)**:
+   * Kiểm tra tự động bằng code: Độ dài từ (150–220 từ), độ bao phủ bullet (`bullets_covered >= 80%`), phát hiện câu template lặp và đánh dấu `invented_claims`.
+
+4. **Human Review Bắt Buộc Trước Khi Lồng Tiếng**:
+   * Hệ thống dừng lại hiển thị ảnh slide + kịch bản + số từ + bullet coverage để người dùng bấm `Y` duyệt hoặc chỉnh sửa trực tiếp tại `output/script.json`.
+   * Cờ `--auto` cho phép bỏ qua bước duyệt khi chạy tự động hoàn toàn.
+
+5. **Phòng Thu Lồng Tiếng Tách Biệt (`agents/voice.py`)**:
+   * Một interface duy nhất: `synthesize(text, provider, voice_ref) -> Path`.
+   * **ZeroTTS (ONNX local)** là engine chính: Tự động phân đoạn câu sư phạm (max 24 từ), ngắt nghỉ 0.45s, hỗ trợ tăng tốc GPU qua CUDA/DirectML.
+   * **Edge-TTS** (`vi-VN-NamMinhNeural` / `vi-VN-HoaiMyNeural`) là engine dự phòng 100% miễn phí.
+   * Kiểm tra file âm thanh câm bằng `volumedetect`.
+
+6. **Render & Assemble Chuẩn Phát Sóng (`agents/render.py`, `agents/assemble.py`)**:
+   * FFmpeg render video 1920x1080 @ 30fps, Ken Burns hiệu ứng phóng nhẹ (1.00 -> 1.05), thời lượng khớp chính xác với âm thanh thật.
+   * Faster-Whisper trích xuất phụ đề `.srt` tiếng Việt theo timestamp thật.
+   * Chuẩn hóa âm thanh chuẩn EBU R128 (`loudnorm -16 LUFS`), hardsub phụ đề vào video.
+
+7. **LangGraph State Machine & Checkpoint Phục Hồi (`agents/graph.py`)**:
+   * `[PARSED] -> [SCRIPTED] -> [QA_SCRIPT] -> [HUMAN REVIEW] -> [VOICED] -> [RENDERED] -> [QA_FINAL] -> [ASSEMBLED]`.
+   * Lưu checkpoint `output/state.json` sau mỗi slide. Khi gặp sự cố mạng hoặc tắt ngang, chạy lại lệnh cũ sẽ tiếp tục ngay từ slide gián đoạn mà không cần gọi lại Gemini hay tổng hợp lại giọng đọc các slide trước đó.
+
+---
+
+## 📁 Cấu Trúc Dự Án V2
 
 ```
-AI_Video_Agent/
-├── app.py                     # Web Studio Server (Flask + SSE Streaming)
-├── run_cli.py                 # Trình chạy dòng lệnh CLI nhanh
-├── config.py                  # Cấu hình tập trung toàn hệ thống
-├── requirements.txt           # Danh sách thư viện Python
-├── .env.example               # Mẫu cấu hình API Keys & tham số
-├── README.md                  # Hướng dẫn chi tiết
-│
-├── src/                       # Các module xử lý lõi (Clean Architecture)
-│   ├── __init__.py            # Khởi tạo package
-│   ├── extractor.py           # Bước 1: Trích xuất PPTX & ảnh 1080p
-│   ├── script_gen.py          # Bước 2: Sinh kịch bản sư phạm AI
-│   ├── tts_engine.py          # Bước 3: Microsoft EdgeTTS & EverAI Studio
-│   ├── voice_cloner.py        # Bước 4: Voice Cloning RVC & Bộ lọc âm sắc
-│   ├── video_renderer.py      # Bước 5: Render & nối video FFmpeg 1080p
-│   ├── voice_utils.py         # Tiện ích trích xuất giọng sạch từ video
-│   └── pipeline.py            # Orchestrator điều phối toàn bộ quy trình
-│
-├── templates/
-│   └── index.html             # Giao diện Web Studio (SVG Icons & Toasts)
-├── voice_samples/             # Thư mục chứa mẫu giọng thật (.wav)
-├── workspace/                 # Dữ liệu đệm xử lý trung gian (gitignored)
-└── output/                    # Video bài giảng thành phẩm (.mp4)
+AI_Video_Agent_V2/
+├── main.py                     # CLI chính: python main.py --slides <file> [--auto] [--reset]
+├── app.py                      # Web Studio (Flask)
+├── requirements.txt            # Thư viện dùng chung
+├── requirements-windows.txt    # Thư viện đặc thù Windows (pywin32)
+├── .env.example                # Mẫu biến môi trường
+├── config.py                   # Cấu hình tập trung duy nhất
+├── README.md                   # Hướng dẫn dự án
+├── agents/                     # Các module kiến trúc V2
+│   ├── __init__.py
+│   ├── parse.py                # Trích xuất slide & xuất ảnh thật 1080p
+│   ├── script.py               # 1 slide = 1 Gemini call + response_schema
+│   ├── qa.py                   # Code-based QA kịch bản & video
+│   ├── voice.py                # Interface TTS thống nhất: ZeroTTS & Edge-TTS
+│   ├── render.py               # FFmpeg render slide video Ken Burns
+│   ├── assemble.py             # Faster-Whisper .srt + loudnorm -16 LUFS + nối video
+│   └── graph.py                # LangGraph State Machine & Checkpoint
+├── test_data/
+│   └── Ex01_Hybrid_Workflow.pptx # Bài giảng test chuẩn 6 slide
+└── output/                     # Thư mục đầu ra sản phẩm (gitignored)
+    ├── state.json              # Checkpoint trạng thái
+    ├── script.json             # Kịch bản các slide
+    ├── slides/                 # Ảnh slide 1080p thật
+    ├── audio/                  # File âm thanh từng slide
+    └── video/
+        ├── final_lecture.mp4   # Video bài giảng thành phẩm
+        └── final_lecture.srt   # Phụ đề khớp thời gian thật
 ```
 
 ---
 
 ## 🚀 Hướng Dẫn Cài Đặt & Sử Dụng
 
-### 1. Cài đặt thư viện phụ thuộc
+### 1. Cài đặt môi trường
 ```bash
+# Cài đặt các thư viện phụ thuộc
 pip install -r requirements.txt
+
+# Trên hệ điều hành Windows (cần thiết cho PowerPoint COM)
+pip install -r requirements-windows.txt
 ```
 
-### 2. Cấu hình biến môi trường (Tùy chọn)
+### 2. Cấu hình biến môi trường
 Tạo file `.env` từ `.env.example`:
-```env
-GEMINI_API_KEY=your_gemini_api_key
-EVERAI_API_KEY=your_everai_api_key
-TTS_VOICE=vi-VN-NamMinhNeural
-TTS_RATE=-4%
+```ini
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+
+TTS_PROVIDER=zerotts
+ZEROTTS_MODEL=zeroweight-ai/ZeroTTS
+ZEROTTS_VOICE=maichi
+EDGE_TTS_VOICE=vi-VN-NamMinhNeural
+
+VIDEO_WIDTH=1920
+VIDEO_HEIGHT=1080
+VIDEO_FPS=30
+SLIDE_PRE_PAUSE=0.8
+SLIDE_POST_PAUSE=1.5
 ```
 
-### 3. Khởi chạy Web Studio
+### 3. Chạy qua dòng lệnh (Khuyến nghị)
+
+```bash
+# Chạy có duyệt kịch bản (Human Review)
+python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx
+
+# Chạy tự động hoàn toàn (bỏ qua bước bấm Y)
+python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx --auto
+
+# Chạy lại từ đầu (xóa sạch checkpoint cũ)
+python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx --reset
+```
+
+### 4. Khởi chạy Web Studio (Tùy chọn)
 ```bash
 python app.py
 ```
-👉 Mở trình duyệt tại địa chỉ: **`http://127.0.0.1:5000`**
+Mở trình duyệt tại: **`http://127.0.0.1:5000`**
 
-### 4. Khởi chạy qua dòng lệnh CLI
+### 5. Chạy bộ kiểm thử tự động
 ```bash
-python run_cli.py --input "input/your_presentation.pptx" --voice "vi-VN-NamMinhNeural" --output "output_video.mp4"
+python -m unittest tests.test_advanced_suite
 ```
 
 ---
 
 ## 📜 Giấy Phép & Tác Quyền
-Dự án được phát triển nhằm mục đích tự động hóa sản xuất nội dung bài giảng số chất lượng cao phục vụ giáo dục và đào tạo.
+Dự án được xây dựng và chuẩn hóa phục vụ sản xuất nội dung bài giảng thuyết trình số chất lượng cao.

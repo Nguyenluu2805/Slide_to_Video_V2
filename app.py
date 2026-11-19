@@ -1,6 +1,6 @@
 """
-AI Lecture Video Studio - Web Application Server
-Flask RESTful API + SSE Real-time Streaming + Modern Dark SaaS Web UI
+app.py - AI Video Agent V2 Web Studio Server
+Giao diện Web trực quan hỗ trợ xem trước slide thật, duyệt kịch bản Human Review và theo dõi tiến độ.
 """
 
 import os
@@ -13,15 +13,16 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 from werkzeug.utils import secure_filename
 
-# Add src to sys.path
-BASE_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(BASE_DIR / "src"))
+# Đảm bảo xuất UTF-8 trên Windows console
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 import config
-from extractor import run_extractor
-from script_gen import run_script_generator
-from voice_utils import extract_audio_from_media
-from pipeline import run_full_pipeline
+from agents.parse import parse_presentation
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -35,10 +36,6 @@ def add_cache_headers(response):
     response.headers['Expires'] = '0'
     return response
 
-# Thư mục lưu trữ
-VOICE_SAMPLES_DIR = config.PROJECT_ROOT / "voice_samples"
-VOICE_SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
-
 # Trạng thái tiến trình toàn cục
 log_queues = []
 
@@ -46,9 +43,9 @@ def get_initial_timings():
     return {
         "step_1": {"name": "Trích xuất Slide", "duration": 0.0, "status": "pending", "formatted": ""},
         "step_2": {"name": "Tạo Kịch Bản", "duration": 0.0, "status": "pending", "formatted": ""},
-        "step_3": {"name": "Tổng Hợp Giọng Nói", "duration": 0.0, "status": "pending", "formatted": ""},
-        "step_4": {"name": "Chuyển Đổi Âm Sắc", "duration": 0.0, "status": "pending", "formatted": ""},
-        "step_5": {"name": "Render Video 1080p", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_3": {"name": "QA Kịch Bản", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_4": {"name": "Lồng Tiếng TTS", "duration": 0.0, "status": "pending", "formatted": ""},
+        "step_5": {"name": "Render & Hardsub", "duration": 0.0, "status": "pending", "formatted": ""},
         "total_duration": 0.0,
         "total_formatted": "0.0s"
     }
@@ -58,256 +55,171 @@ current_job = {
     "progress": 0,
     "current_step": "",
     "log": [],
-    "output_video": "",
-    "error_message": "",
-    "timings": get_initial_timings(),
-    "start_time": 0.0
+    "result_video": None,
+    "error": None,
+    "timings": get_initial_timings()
 }
 
-def broadcast_progress(step_name: str, progress_percent: int, log_line: str, timings: dict = None):
-    """Phát tin nhắn tiến trình kèm dữ liệu thời gian qua Server-Sent Events (SSE)."""
-    current_job["current_step"] = step_name
-    current_job["progress"] = progress_percent
-    current_job["log"].append(log_line)
+def broadcast_log(step: str, progress: int, message: str, timings: dict = None):
+    current_job["current_step"] = step
+    current_job["progress"] = progress
+    msg_entry = {
+        "time": time.strftime("%H:%M:%S"),
+        "step": step,
+        "progress": progress,
+        "message": message
+    }
     if timings:
         current_job["timings"] = timings
+        msg_entry["timings"] = timings
 
-    msg = json.dumps({
-        "step": step_name,
-        "progress": progress_percent,
-        "log": log_line,
-        "status": current_job["status"],
-        "video": current_job["output_video"],
-        "timings": current_job["timings"]
-    }, ensure_ascii=False)
-
+    current_job["log"].append(msg_entry)
+    data = json.dumps(msg_entry, ensure_ascii=False)
     for q in list(log_queues):
         try:
-            q.put_nowait(msg)
+            q.put_nowait(data)
         except Exception:
             pass
 
-@app.route("/")
+
+@app.route('/')
 def index():
-    return render_template("index.html")
+    hw = config.get_hardware_device_info()
+    return render_template(
+        'index.html',
+        default_voice=config.TTS_VOICE,
+        default_rate=config.TTS_RATE,
+        default_volume=config.TTS_VOLUME,
+        gemini_model=config.GEMINI_MODEL,
+        hardware_device=hw["device_name"]
+    )
 
-@app.route("/api/upload", methods=["POST"])
+
+@app.route('/output/slides/<path:filename>')
+def serve_slide_image(filename):
+    return send_from_directory(str(config.SLIDES_DIR), filename)
+
+
+@app.route('/output/video/<path:filename>')
+def serve_output_video(filename):
+    return send_from_directory(str(config.VIDEO_DIR), filename)
+
+
+@app.route('/api/upload', methods=['POST'])
 def upload_file():
-    """Tải lên file bài giảng .pptx."""
-    if "file" not in request.files:
-        return jsonify({"error": "Không tìm thấy file trong yêu cầu"}), 400
+    if 'file' not in request.files:
+        return jsonify({"error": "Không có file nào được tải lên"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Chưa chọn file"}), 400
+    if not file.filename.lower().endswith(('.pptx', '.ppt')):
+        return jsonify({"error": "Chỉ chấp nhận file PowerPoint (.pptx)"}), 400
 
-    file = request.files["file"]
-    if not file.filename.lower().endswith(".pptx"):
-        return jsonify({"error": "Định dạng file không hợp lệ! Vui lòng chỉ tải lên file .pptx"}), 400
-
-    filename = secure_filename(file.filename) or "presentation.pptx"
-    config.INPUT_DIR.mkdir(parents=True, exist_ok=True)
-    save_path = config.INPUT_DIR / filename
-    file.save(str(save_path.resolve()))
-
+    filename = secure_filename(file.filename)
+    dest_path = config.INPUT_DIR / filename
+    file.save(str(dest_path))
     return jsonify({
         "success": True,
         "filename": filename,
-        "size_kb": round(save_path.stat().st_size / 1024, 1),
-        "message": f"Tải lên thành công file: {filename}"
+        "path": str(dest_path),
+        "message": f"Tải lên thành công: {filename}"
     })
 
-@app.route("/api/upload-voice-sample", methods=["POST"])
-def upload_voice_sample():
-    """Tải lên file video hoặc audio để trích xuất giọng người thật."""
-    if "file" not in request.files:
-        return jsonify({"error": "Không tìm thấy file giọng mẫu"}), 400
 
-    file = request.files["file"]
-    filename = secure_filename(file.filename) or "voice_sample.mp4"
-    temp_path = VOICE_SAMPLES_DIR / f"temp_{filename}"
-    file.save(str(temp_path.resolve()))
-
-    try:
-        final_wav = extract_audio_from_media(temp_path)
-        if temp_path.exists():
-            temp_path.unlink()
-
-        return jsonify({
-            "success": True,
-            "filename": filename,
-            "size_mb": round(final_wav.stat().st_size / (1024 * 1024), 2),
-            "message": "Trích xuất mẫu giọng chuẩn WAV thành công!"
-        })
-    except Exception as e:
-        if temp_path.exists():
-            temp_path.unlink()
-        return jsonify({"error": f"Lỗi khi trích xuất âm thanh: {str(e)}"}), 500
-
-@app.route("/api/extract-and-script", methods=["POST"])
+@app.route('/api/extract-and-script', methods=['POST'])
 def extract_and_script():
-    """Trích xuất slide và sinh kịch bản phục vụ chỉnh sửa trước khi render."""
+    """Trích xuất slide thật và tạo kịch bản V2."""
     data = request.json or {}
-    filename = data.get("filename", "demo_lecture.pptx")
-    gemini_key = data.get("gemini_api_key", "").strip()
+    filename = data.get('filename', '')
+    if not filename:
+        return jsonify({"error": "Chưa chỉ định file"}), 400
 
-    # Tìm file pptx
     pptx_path = config.INPUT_DIR / filename
     if not pptx_path.exists():
-        pptx_path = config.PROJECT_ROOT / filename
+        pptx_path = config.TEST_DATA_DIR / filename
     if not pptx_path.exists():
-        pptx_path = config.PROJECT_ROOT / "demo_lecture.pptx"
-
-    if not pptx_path.exists():
-        return jsonify({"error": f"Không tìm thấy file bài giảng: {filename}"}), 404
+        return jsonify({"error": f"Không tìm thấy file: {filename}"}), 404
 
     try:
-        slides = run_extractor(pptx_path)
-        scripts = run_script_generator(slides, gemini_api_key=gemini_key)
-
-        result_slides = []
-        for i, s in enumerate(slides, start=1):
-            script_text = ""
-            has_demo = False
-            code_demo_data = None
-            for item in scripts:
-                if item["slide_index"] == i:
-                    script_text = item["script"]
-                    has_demo = bool(item.get("has_code_demo", False))
-                    code_demo_data = item.get("code_demo", None)
-                    break
-
-            result_slides.append({
-                "slide_index": i,
-                "title": s.get("title", f"Slide {i}"),
-                "script": script_text,
-                "has_code_demo": has_demo,
-                "code_demo": code_demo_data,
-                "image_url": f"/api/slide-image/slide_{i:03d}.png"
-            })
-
-
-        return jsonify({"success": True, "slides": result_slides})
+        broadcast_log("Trích xuất Slide", 10, f"Đang trích xuất slide thật từ {filename}...")
+        slides_data = parse_presentation(pptx_path)
+        broadcast_log("Trích xuất Slide", 30, f"Đã trích xuất {len(slides_data)} slide 1080p thành công.")
+        return jsonify({"success": True, "slides": slides_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/start-pipeline", methods=["POST"])
-def start_pipeline():
-    """Khởi động toàn bộ luồng tạo video 5 bước."""
-    if current_job["status"] == "running":
-        return jsonify({"error": "Tiến trình khác đang thực thi, vui lòng đợi hoàn tất!"}), 400
+
+@app.route('/api/script', methods=['GET', 'POST'])
+def handle_script():
+    """Lấy hoặc cập nhật kịch bản sau Human Review."""
+    if request.method == 'GET':
+        if config.SCRIPT_FILE.exists():
+            with open(config.SCRIPT_FILE, 'r', encoding='utf-8') as f:
+                scripts = json.load(f)
+            return jsonify({"success": True, "scripts": scripts})
+        return jsonify({"success": False, "scripts": []})
 
     data = request.json or {}
-    filename = data.get("filename", "demo_lecture.pptx")
-    custom_scripts = data.get("custom_scripts", None)
-    gemini_key = data.get("gemini_api_key", "").strip()
-    voice = data.get("voice", "vi-VN-NamMinhNeural")
-    tts_rate = data.get("rate", "-10%")
-    enable_rvc = bool(data.get("enable_rvc", False))
-    slide_pause = data.get("slide_pause", None)
-    if slide_pause is not None:
-        try: slide_pause = float(slide_pause)
-        except Exception: slide_pause = None
+    scripts = data.get('scripts', [])
+    with open(config.SCRIPT_FILE, 'w', encoding='utf-8') as f:
+        json.dump(scripts, f, ensure_ascii=False, indent=2)
+    return jsonify({"success": True, "message": "Đã lưu kịch bản cập nhật."})
 
-    pptx_path = config.INPUT_DIR / filename
-    if not pptx_path.exists():
-        pptx_path = config.PROJECT_ROOT / filename
-    if not pptx_path.exists():
-        pptx_path = config.PROJECT_ROOT / "demo_lecture.pptx"
 
-    if not pptx_path.exists():
-        return jsonify({"error": f"Không tìm thấy file bài giảng: {filename}"}), 404
-
-    current_job["status"] = "running"
-    current_job["progress"] = 0
-    current_job["log"] = []
-    current_job["error_message"] = ""
-    current_job["output_video"] = ""
-    current_job["timings"] = get_initial_timings()
-    current_job["start_time"] = time.time()
-
-    def worker():
-        try:
-            out_video = run_full_pipeline(
-                pptx_path=pptx_path,
-                custom_scripts=custom_scripts,
-                gemini_api_key=gemini_key,
-                voice_name=voice,
-                tts_rate=tts_rate,
-                enable_rvc=enable_rvc,
-                output_filename="output_video.mp4",
-                on_progress=broadcast_progress,
-                slide_pause=slide_pause
-            )
-            current_job["status"] = "completed"
-            current_job["output_video"] = out_video.name
-            if hasattr(out_video, "timings"):
-                current_job["timings"] = getattr(out_video, "timings")
-            broadcast_progress("Hoàn Thành", 100, f"Đã tạo video hoàn tất: {out_video.name}", timings=current_job["timings"])
-        except Exception as e:
-            current_job["status"] = "error"
-            current_job["error_message"] = str(e)
-            broadcast_progress("Lỗi", 0, f"Lỗi xảy ra trong quá trình xử lý: {str(e)}", timings=current_job["timings"])
-
-    threading.Thread(target=worker, daemon=True).start()
-    return jsonify({"success": True, "message": "Tiến trình tạo video đã được khởi động!"})
-
-@app.route("/api/progress-stream")
+@app.route('/api/progress-stream')
 def progress_stream():
-    """SSE Stream gửi dữ liệu tiến trình thời gian thực về giao diện người dùng."""
+    """SSE endpoint truyền log tiến độ thời gian thực về browser."""
     def event_stream():
         q = queue.Queue()
         log_queues.append(q)
+        for old_msg in current_job["log"][-20:]:
+            yield f"data: {json.dumps(old_msg, ensure_ascii=False)}\n\n"
         try:
-            init_msg = json.dumps({
-                "step": current_job["current_step"],
-                "progress": current_job["progress"],
-                "log": "Đã kết nối luồng trạng thái thời gian thực...",
-                "status": current_job["status"],
-                "video": current_job["output_video"],
-                "timings": current_job["timings"]
-            }, ensure_ascii=False)
-            yield f"data: {init_msg}\n\n"
-
             while True:
-                msg = q.get()
-                yield f"data: {msg}\n\n"
-        except GeneratorExit:
+                try:
+                    data = q.get(timeout=25.0)
+                    yield f"data: {data}\n\n"
+                except queue.Empty:
+                    yield ": keep-alive\n\n"
+        finally:
             if q in log_queues:
                 log_queues.remove(q)
 
     return Response(event_stream(), mimetype="text/event-stream")
 
-@app.route("/api/latest-video")
+
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    hw = config.get_hardware_device_info()
+    return jsonify({
+        "status": current_job["status"],
+        "progress": current_job["progress"],
+        "current_step": current_job["current_step"],
+        "result_video": current_job["result_video"],
+        "error": current_job["error"],
+        "timings": current_job["timings"],
+        "hardware": hw
+    })
+
+
+@app.route('/api/latest-video')
 def get_latest_video():
-    """Kiểm tra video đã render gần nhất trên máy."""
-    out_dir = config.OUTPUT_DIR
-    videos = sorted(out_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if videos and videos[0].stat().st_size > 1024:
-        v = videos[0]
+    if config.FINAL_VIDEO_FILE.exists():
+        stat = config.FINAL_VIDEO_FILE.stat()
         return jsonify({
             "exists": True,
-            "filename": v.name,
-            "size_mb": round(v.stat().st_size / (1024 * 1024), 2),
-            "url": f"/api/video/{v.name}"
+            "filename": config.FINAL_VIDEO_FILE.name,
+            "url": f"/output/video/{config.FINAL_VIDEO_FILE.name}?t={int(stat.st_mtime)}",
+            "size_mb": round(stat.st_size / (1024 * 1024), 2)
         })
     return jsonify({"exists": False})
 
-@app.route("/api/slide-image/<filename>")
-def serve_slide_image(filename):
-    return send_from_directory(str(config.IMAGES_DIR.resolve()), filename)
 
-@app.route("/api/video/<filename>")
-def serve_video(filename):
-    return send_from_directory(str(config.OUTPUT_DIR.resolve()), filename, mimetype="video/mp4", conditional=True)
-
-@app.route("/api/download-video/<filename>")
-def download_video(filename):
-    return send_from_directory(str(config.OUTPUT_DIR.resolve()), filename, as_attachment=True)
-
-if __name__ == "__main__":
-    print("\n" + "=" * 60)
-    print("ĐANG KHỞI ĐỘNG MÁY CHỦ AI LECTURE STUDIO")
-    print("Mở trình duyệt tại địa chỉ: http://127.0.0.1:5000")
-    print("=" * 60 + "\n")
-    try:
-        from waitress import serve
-        serve(app, host="127.0.0.1", port=5000, threads=8)
-    except Exception:
-        app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+if __name__ == '__main__':
+    hw = config.get_hardware_device_info()
+    print("=" * 60)
+    print("AI VIDEO AGENT V2 - WEB STUDIO")
+    print(f"Địa chỉ: http://127.0.0.1:5000")
+    print(f"Thiết bị: {hw['device_name']}")
+    print("=" * 60)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
