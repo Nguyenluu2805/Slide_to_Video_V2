@@ -61,9 +61,9 @@ def clean_text_for_tts(text: str) -> str:
     if not text:
         return "Nội dung slide bài giảng."
 
-    # 1. Bảo vệ số thập phân (99.9%, 3.5, 0.8s, ...) bằng token chữ cái an toàn
-    cleaned = re.sub(r'(\d+)\.(\d+)', r'\1DECIMALDOT\2', text)
-    cleaned = re.sub(r'(\d+),(\d+)', r'\1DECIMALCOMMA\2', cleaned)
+    # 1. Bảo vệ số thập phân (99.9%, 3.5, 0.8s, ...) bằng placeholder an toàn
+    cleaned = re.sub(r'(\d+)\.(\d+)', r'\1_DOT_\2', text)
+    cleaned = re.sub(r'(\d+),(\d+)', r'\1_COMMA_\2', cleaned)
 
     # 2. Chuyển dấu gạch ngang dài / en-dash / em-dash thành dấu phẩy
     cleaned = re.sub(r'[\u2012\u2013\u2014\u2015\u2212]+', ', ', cleaned)
@@ -80,19 +80,21 @@ def clean_text_for_tts(text: str) -> str:
     cleaned = cleaned.replace(":", ", ")
     cleaned = cleaned.replace(";", ", ")
 
-    # 5. Bỏ markdown formatting (*, #, _, [, ], (, ), {, }, <, >, |, ~, ^)
-    cleaned = re.sub(r'[\*\#\_\[\]\(\)\{\}\<\>\/\\\|\~\^\@]', ' ', cleaned)
+    # 5. Bỏ markdown formatting (*, #, [, ], (, ), {, }, <, >, |, ~, ^, @) - bảo vệ _ của _DOT_
+    cleaned = re.sub(r'[\*\#\[\]\(\)\{\}\<\>\/\\\|\~\^\@]', ' ', cleaned)
 
     # 6. Bảo vệ dấu chấm lửng
     cleaned = re.sub(r'\.{3,}|…', ' … ', cleaned)
 
-    # 7. Chuẩn hóa khoảng trắng quanh dấu câu
+    # 7. Chuẩn hóa khoảng trắng quanh dấu câu (không ảnh hưởng _DOT_)
     cleaned = re.sub(r'\s*,\s*', ', ', cleaned)
     cleaned = re.sub(r'\s*\.\s*', '. ', cleaned)
     cleaned = re.sub(r'\s*!\s*', '! ', cleaned)
     cleaned = re.sub(r'\s*\?\s*', '? ', cleaned)
 
     # 8. Khôi phục số thập phân nguyên vẹn
+    cleaned = cleaned.replace('_DOT_', '.')
+    cleaned = cleaned.replace('_COMMA_', ',')
     cleaned = cleaned.replace('DECIMALDOT', '.')
     cleaned = cleaned.replace('DECIMALCOMMA', ',')
 
@@ -308,8 +310,15 @@ def synthesize(
         output_path = config.AUDIO_DIR / f"speech_{int(time.time()*1000)}.wav"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    target_provider = (provider or config.TTS_PROVIDER).lower()
-    target_voice = voice_ref or (config.ZEROTTS_VOICE if "zerotts" in target_provider else config.EDGE_TTS_VOICE)
+    if getattr(config, "DRAFT_MODE", False):
+        default_provider = "edge-tts"
+        default_voice = config.EDGE_TTS_VOICE
+    else:
+        default_provider = config.TTS_PROVIDER
+        default_voice = config.TTS_VOICE
+
+    target_provider = (provider or default_provider).lower()
+    target_voice = voice_ref or (config.EDGE_TTS_VOICE if "edge" in target_provider else default_voice)
 
     # Thử tối đa 3 lần
     for attempt in range(1, 4):
@@ -360,8 +369,15 @@ def synthesize_presentation_audio(
     - Lưu checkpoint state.json sau mỗi slide.
     """
     config.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    active_provider = provider or config.TTS_PROVIDER
-    active_voice = voice_name or config.TTS_VOICE
+    if getattr(config, "DRAFT_MODE", False):
+        default_provider = "edge-tts"
+        default_voice = config.EDGE_TTS_VOICE
+    else:
+        default_provider = config.TTS_PROVIDER
+        default_voice = config.TTS_VOICE
+
+    active_provider = provider or default_provider
+    active_voice = voice_name or default_voice
 
     total_slides = len(slides_data)
     print(f"\n[*] Bắt đầu tổng hợp giọng nói cho {total_slides} slide (Provider: {active_provider})...")

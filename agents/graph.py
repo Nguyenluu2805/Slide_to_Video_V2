@@ -19,10 +19,11 @@ from agents.script import generate_scripts_with_checkpoint
 from agents.voice import get_audio_duration_seconds
 
 
-class VideoAgentState(TypedDict):
+class VideoAgentState(TypedDict, total=False):
     pptx_path: str
     auto_mode: bool
     reset_mode: bool
+    draft_mode: bool
     provider: str
     voice: Optional[str]
     slides: List[Dict[str, Any]]
@@ -30,6 +31,7 @@ class VideoAgentState(TypedDict):
     error: Optional[str]
     final_video: Optional[str]
     final_srt: Optional[str]
+    timings: Dict[str, float]
 
 
 def node_parse(state: VideoAgentState) -> Dict[str, Any]:
@@ -37,16 +39,25 @@ def node_parse(state: VideoAgentState) -> Dict[str, Any]:
     print("\n" + "=" * 60)
     print("📍 [NODE 1: PARSE] Đang trích xuất slide PowerPoint thật...")
     print("=" * 60)
+    print("[TIMING] node parse bắt đầu...")
+    t0 = time.time()
     pptx_p = Path(state["pptx_path"])
     try:
         slides_data = parse_presentation(pptx_p)
+        elapsed = time.time() - t0
+        print(f"[TIMING] node parse: {elapsed:.2f}s")
         print(f"[+] Trích xuất thành công {len(slides_data)} slide.")
+        timings = dict(state.get("timings", {}))
+        timings["parse"] = round(elapsed, 2)
         return {
             "slides": slides_data,
             "current_node": "parsed",
-            "error": None
+            "error": None,
+            "timings": timings
         }
     except Exception as e:
+        elapsed = time.time() - t0
+        print(f"[TIMING] node parse (lỗi): {elapsed:.2f}s")
         print(f"[!] Lỗi tại node parse: {e}")
         return {
             "current_node": "error",
@@ -59,6 +70,8 @@ def node_script(state: VideoAgentState) -> Dict[str, Any]:
     print("\n" + "=" * 60)
     print("📍 [NODE 2: SCRIPT & QA] Sinh kịch bản sư phạm và kiểm thử...")
     print("=" * 60)
+    print("[TIMING] node script bắt đầu...")
+    t0 = time.time()
     slides = state.get("slides", [])
     if not slides:
         return {"current_node": "error", "error": "Không có dữ liệu slide để tạo kịch bản."}
@@ -69,12 +82,19 @@ def node_script(state: VideoAgentState) -> Dict[str, Any]:
             auto_mode=state.get("auto_mode", False),
             reset_mode=state.get("reset_mode", False)
         )
+        elapsed = time.time() - t0
+        print(f"[TIMING] node script: {elapsed:.2f}s")
+        timings = dict(state.get("timings", {}))
+        timings["script"] = round(elapsed, 2)
         return {
             "slides": updated_slides,
             "current_node": "scripted",
-            "error": None
+            "error": None,
+            "timings": timings
         }
     except Exception as e:
+        elapsed = time.time() - t0
+        print(f"[TIMING] node script (lỗi): {elapsed:.2f}s")
         print(f"[!] Lỗi tại node script: {e}")
         return {
             "current_node": "error",
@@ -87,17 +107,31 @@ def node_voice(state: VideoAgentState) -> Dict[str, Any]:
     print("\n" + "=" * 60)
     print("📍 [NODE 3: VOICE TTS] Tổng hợp giọng đọc bài giảng...")
     print("=" * 60)
+    print("[TIMING] node voice bắt đầu...")
+    t0 = time.time()
     slides = state.get("slides", [])
-    provider = state.get("provider", config.TTS_PROVIDER)
-    voice = state.get("voice")
+
+    is_draft = state.get("draft_mode") or getattr(config, "DRAFT_MODE", False)
+    if is_draft:
+        # Chế độ nháp mặc định dùng Edge-TTS nếu không chỉ định provider khác
+        provider = state.get("provider") if state.get("provider") and state.get("provider") != "zerotts" else "edge-tts"
+        voice = state.get("voice") or config.EDGE_TTS_VOICE
+    else:
+        provider = state.get("provider", config.TTS_PROVIDER)
+        voice = state.get("voice")
 
     try:
         from agents.voice import synthesize_presentation_audio
         updated_slides = synthesize_presentation_audio(slides, provider=provider, voice_name=voice)
+        elapsed = time.time() - t0
+        print(f"[TIMING] node voice: {elapsed:.2f}s")
+        timings = dict(state.get("timings", {}))
+        timings["voice"] = round(elapsed, 2)
         return {
             "slides": updated_slides,
             "current_node": "voiced",
-            "error": None
+            "error": None,
+            "timings": timings
         }
     except ImportError:
         print("[*] Node Voice TTS đang chờ triển khai ở P2 (sẵn sàng tiếp nối).")
@@ -106,23 +140,32 @@ def node_voice(state: VideoAgentState) -> Dict[str, Any]:
             "error": None
         }
     except Exception as e:
+        elapsed = time.time() - t0
+        print(f"[TIMING] node voice (lỗi): {elapsed:.2f}s")
         print(f"[!] Lỗi tại node voice: {e}")
         return {"current_node": "error", "error": f"Lỗi tổng hợp giọng nói: {str(e)}"}
 
 
 def node_render(state: VideoAgentState) -> Dict[str, Any]:
-    """Node 4: Render video từng slide (FFmpeg 1080p, Ken Burns)."""
+    """Node 4: Render video từng slide (FFmpeg 1080p, Ken Burns hoặc Static Draft)."""
     print("\n" + "=" * 60)
     print("📍 [NODE 4: RENDER] Render video từng slide bằng FFmpeg...")
     print("=" * 60)
+    print("[TIMING] node render bắt đầu...")
+    t0 = time.time()
     try:
         from agents.render import render_presentation_slides
         slides = state.get("slides", [])
         updated_slides = render_presentation_slides(slides)
+        elapsed = time.time() - t0
+        print(f"[TIMING] node render: {elapsed:.2f}s")
+        timings = dict(state.get("timings", {}))
+        timings["render"] = round(elapsed, 2)
         return {
             "slides": updated_slides,
             "current_node": "rendered",
-            "error": None
+            "error": None,
+            "timings": timings
         }
     except ImportError:
         print("[*] Node Render đang chờ triển khai ở P2 (sẵn sàng tiếp nối).")
@@ -131,24 +174,33 @@ def node_render(state: VideoAgentState) -> Dict[str, Any]:
             "error": None
         }
     except Exception as e:
+        elapsed = time.time() - t0
+        print(f"[TIMING] node render (lỗi): {elapsed:.2f}s")
         print(f"[!] Lỗi tại node render: {e}")
         return {"current_node": "error", "error": f"Lỗi render video: {str(e)}"}
 
 
 def node_assemble(state: VideoAgentState) -> Dict[str, Any]:
-    """Node 5: Trích xuất phụ đề Faster-Whisper, loudnorm -16 LUFS và nối video hoàn chỉnh."""
+    """Node 5: Lắp ráp video hoàn chỉnh và hardsub phụ đề .ass."""
     print("\n" + "=" * 60)
-    print("📍 [NODE 5: ASSEMBLE] Trích xuất phụ đề .srt và xuất final video...")
+    print("📍 [NODE 5: ASSEMBLE] Lắp ráp video hoàn chỉnh và hardsub phụ đề .ass...")
     print("=" * 60)
+    print("[TIMING] node assemble bắt đầu...")
+    t0 = time.time()
     try:
         from agents.assemble import assemble_final_video
         slides = state.get("slides", [])
         final_video, final_srt = assemble_final_video(slides)
+        elapsed = time.time() - t0
+        print(f"[TIMING] node assemble: {elapsed:.2f}s")
+        timings = dict(state.get("timings", {}))
+        timings["assemble"] = round(elapsed, 2)
         return {
             "current_node": "assembled",
             "final_video": str(final_video),
             "final_srt": str(final_srt),
-            "error": None
+            "error": None,
+            "timings": timings
         }
     except ImportError:
         print("[*] Node Assemble đang chờ triển khai ở P2 (sẵn sàng tiếp nối).")
@@ -159,6 +211,8 @@ def node_assemble(state: VideoAgentState) -> Dict[str, Any]:
             "error": None
         }
     except Exception as e:
+        elapsed = time.time() - t0
+        print(f"[TIMING] node assemble (lỗi): {elapsed:.2f}s")
         print(f"[!] Lỗi tại node assemble: {e}")
         return {"current_node": "error", "error": f"Lỗi assemble video: {str(e)}"}
 
@@ -168,6 +222,8 @@ def node_qa_final(state: VideoAgentState) -> Dict[str, Any]:
     print("\n" + "=" * 60)
     print("📍 [NODE 6: QA FINAL] Kiểm tra sản phẩm đầu ra hoàn thiện...")
     print("=" * 60)
+    print("[TIMING] node qa_final bắt đầu...")
+    t0 = time.time()
 
     final_vid = Path(state.get("final_video") or config.FINAL_VIDEO_FILE)
     final_s = Path(state.get("final_srt") or config.FINAL_SRT_FILE)
@@ -199,12 +255,22 @@ def node_qa_final(state: VideoAgentState) -> Dict[str, Any]:
     vid_size_mb = round(final_vid.stat().st_size / (1024 * 1024), 2)
     vid_dur = get_audio_duration_seconds(final_vid)
 
-    print(f"[+] QA Final ĐẠT CHUẨN:")
+    elapsed = time.time() - t0
+    print(f"[TIMING] node qa_final: {elapsed:.2f}s")
+    timings = dict(state.get("timings", {}))
+    timings["qa_final"] = round(elapsed, 2)
+    total_pipeline_time = sum(timings.values())
+
+    print(f"\n[+] QA Final ĐẠT CHUẨN:")
     print(f"    🎬 Video thành phẩm : {final_vid.resolve()} ({vid_size_mb} MB, {vid_dur:.1f}s)")
     print(f"    📄 Phụ đề SRT       : {final_s.resolve()}")
     print(f"    📊 Tổng số slide    : {len(slides)} slide")
     print("=" * 60)
-    return {"current_node": "completed", "error": None}
+    print(f"⏱️ [TIMING SUMMARY] TỔNG THỜI GIAN CÁC NODE: {total_pipeline_time:.2f}s")
+    for k, v in timings.items():
+        print(f"   - node {k}: {v:.2f}s")
+    print("=" * 60)
+    return {"current_node": "completed", "error": None, "timings": timings}
 
 
 def router_after_step(state: VideoAgentState) -> str:
@@ -243,9 +309,14 @@ def run_pipeline(
     auto_mode: bool = False,
     reset_mode: bool = False,
     provider: str = config.TTS_PROVIDER,
-    voice: Optional[str] = None
+    voice: Optional[str] = None,
+    draft_mode: bool = False
 ) -> Dict[str, Any]:
     """Hàm thực thi chính của LangGraph Pipeline."""
+    if draft_mode:
+        config.DRAFT_MODE = True
+        print("[*] Chế độ --draft được kích hoạt: Tăng tốc tối đa (Edge-TTS + Static Render).")
+
     if reset_mode:
         print("[*] Chế độ --reset: Dọn dẹp toàn bộ dữ liệu checkpoint, audio và video cũ...")
         config.STATE_FILE.unlink(missing_ok=True)
@@ -261,20 +332,25 @@ def run_pipeline(
             for f in config.VIDEO_DIR.glob("*.srt"):
                 f.unlink(missing_ok=True)
 
+    pipeline_start_t = time.time()
     graph = build_pipeline_graph()
 
     initial_state: VideoAgentState = {
         "pptx_path": str(pptx_path.resolve()),
         "auto_mode": auto_mode,
         "reset_mode": reset_mode,
+        "draft_mode": draft_mode or getattr(config, "DRAFT_MODE", False),
         "provider": provider,
         "voice": voice,
         "slides": [],
         "current_node": "start",
         "error": None,
         "final_video": None,
-        "final_srt": None
+        "final_srt": None,
+        "timings": {}
     }
 
     result = graph.invoke(initial_state)
+    total_elapsed = time.time() - pipeline_start_t
+    print(f"\n✨ [HOÀN TẤT] Tổng thời gian thực thi toàn bộ pipeline: {total_elapsed:.2f}s ({total_elapsed/60:.2f} phút)")
     return result

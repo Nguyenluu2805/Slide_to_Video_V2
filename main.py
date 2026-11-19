@@ -43,6 +43,11 @@ def parse_args():
         help="Xóa checkpoint state.json cũ và chạy lại toàn bộ quy trình từ đầu."
     )
     parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="Chế độ nháp siêu tốc: Edge-TTS + Static Render (không Ken Burns), kiểm tra nhanh kịch bản và phụ đề."
+    )
+    parser.add_argument(
         "--provider",
         type=str,
         default=config.TTS_PROVIDER,
@@ -66,10 +71,18 @@ def main():
         print("Vui lòng kiểm tra lại đường dẫn file bài giảng.")
         sys.exit(1)
 
+    if args.draft:
+        config.DRAFT_MODE = True
+        if args.provider == "zerotts":
+            args.provider = "edge-tts"
+            if not args.voice:
+                args.voice = config.EDGE_TTS_VOICE
+
     print("=" * 70)
     print("🚀 AI VIDEO AGENT V2 — STUDIO THUYẾT TRÌNH BÀI GIẢNG")
     print(f"📁 Slide Input     : {pptx_path}")
-    print(f"🎙️ TTS Provider    : {args.provider}")
+    print(f"⚡ Chế độ          : {'NHÁP SIÊU TỐC (--draft: Edge-TTS + Static Render)' if args.draft else 'BẢN CUỐI (ZeroTTS + Ken Burns d=1)'}")
+    print(f"🎙️ TTS Provider    : {args.provider} (Voice: {args.voice or (config.EDGE_TTS_VOICE if args.draft else config.TTS_VOICE)})")
     print(f"🤖 Gemini Model    : {config.GEMINI_MODEL}")
     print(f"🎬 Video Specs     : {config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT} @ {config.VIDEO_FPS}fps")
     print(f"⚡ Human Review    : {'TẮT (--auto)' if args.auto else 'BẬT (Chờ duyệt kịch bản)'}")
@@ -85,7 +98,8 @@ def main():
             auto_mode=args.auto,
             reset_mode=args.reset,
             provider=args.provider,
-            voice=args.voice
+            voice=args.voice,
+            draft_mode=args.draft
         )
     except ImportError:
         print("[*] Pipeline graph đang được cấu hình...")

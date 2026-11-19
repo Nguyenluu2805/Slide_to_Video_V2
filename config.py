@@ -58,7 +58,8 @@ TTS_VOLUME = os.getenv("TTS_VOLUME", "+0%")
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 
-# 4. Cấu hình Video Rendering
+# 4. Cấu hình Video Rendering & Draft Mode
+DRAFT_MODE = os.getenv("DRAFT_MODE", "false").lower() in ("true", "1", "yes")
 VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1920"))
 VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1080"))
 VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))

@@ -41,27 +41,45 @@ def render_single_slide_video(
     total_dur = round(audio_dur + pre_pause + post_pause, 2)
     total_frames = int(round(total_dur * config.VIDEO_FPS))
 
-    # Tốc độ zoom Ken Burns 1.00 -> 1.05 trải đều toàn bộ frame
-    zoom_step = 0.05 / max(1, total_frames)
-
     delay_ms = int(round(pre_pause * 1000))
-    filter_complex = (
-        f"[0:v]scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT},"
-        f"zoompan=z='min(zoom+{zoom_step:.6f},1.05)':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT}:fps={config.VIDEO_FPS}[v];"
-        f"[1:a]adelay=delays={delay_ms}:all=1,apad=pad_dur={post_pause}[a]"
-    )
 
-    cmd = [
-        "ffmpeg", "-y",
-        "-loop", "1", "-i", str(image_path.resolve()),
-        "-i", str(audio_path.resolve()),
-        "-filter_complex", filter_complex,
-        "-map", "[v]", "-map", "[a]",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
-        "-c:a", "aac", "-b:a", "192k",
-        "-t", str(total_dur),
-        str(output_mp4.resolve())
-    ]
+    if getattr(config, "DRAFT_MODE", False):
+        # Chế độ nháp: Render ảnh tĩnh, không qua zoompan, tốc độ nhanh vượt trội
+        filter_complex = (
+            f"[0:v]scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}[v];"
+            f"[1:a]adelay=delays={delay_ms}:all=1,apad=pad_dur={post_pause}[a]"
+        )
+        cmd = [
+            "ffmpeg", "-y",
+            "-framerate", str(config.VIDEO_FPS), "-loop", "1", "-i", str(image_path.resolve()),
+            "-i", str(audio_path.resolve()),
+            "-filter_complex", filter_complex,
+            "-map", "[v]", "-map", "[a]",
+            "-t", str(total_dur),
+            "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            str(output_mp4.resolve())
+        ]
+    else:
+        # Bản cuối: Đưa ảnh vào như video 30fps thật (-framerate 30 -loop 1 -i slide.png)
+        # và zoompan với d=1 để không nhân bản frame, loại bỏ hoàn toàn hiện tượng giật (judder)
+        zoom_step = 0.05 / max(1, total_frames)
+        filter_complex = (
+            f"[0:v]scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT},"
+            f"zoompan=z='min(zoom+{zoom_step:.8f},1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT}:fps={config.VIDEO_FPS}[v];"
+            f"[1:a]adelay=delays={delay_ms}:all=1,apad=pad_dur={post_pause}[a]"
+        )
+        cmd = [
+            "ffmpeg", "-y",
+            "-framerate", str(config.VIDEO_FPS), "-loop", "1", "-i", str(image_path.resolve()),
+            "-i", str(audio_path.resolve()),
+            "-filter_complex", filter_complex,
+            "-map", "[v]", "-map", "[a]",
+            "-t", str(total_dur),
+            "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            str(output_mp4.resolve())
+        ]
 
     for attempt in range(1, 4):
         try:
