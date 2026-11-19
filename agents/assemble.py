@@ -19,6 +19,7 @@ from typing import List, Dict, Any, Tuple, Optional
 
 import config
 from agents.voice import get_audio_duration_seconds
+from agents.subtitle_pro import build_ass_from_script
 
 
 def format_srt_timestamp(seconds: float) -> str:
@@ -288,8 +289,12 @@ def assemble_final_video(
     pre_pause = getattr(config, "SLIDE_PRE_PAUSE", 0.8)
     post_pause = getattr(config, "SLIDE_POST_PAUSE", 1.5)
 
-    # 1. Sinh phụ đề trực tiếp từ kịch bản gốc (Đúng 100% chữ)
-    print("\n[*] Bước 1/3: Sinh phụ đề tiếng Việt chuẩn xác 100% từ kịch bản gốc...")
+    # 1. Sinh phụ đề chuyên nghiệp .ass (tô vàng từ khóa, hộp đen mờ) và .srt chuẩn
+    print("\n[*] Bước 1/3: Sinh phụ đề thuyết minh chuyên nghiệp (chuẩn Coursera / Khan Academy)...")
+    ass_path = config.VIDEO_DIR / "final_lecture.ass"
+    build_ass_from_script(slides_data, ass_path, pre_pause=pre_pause, post_pause=post_pause)
+
+    # Đồng thời xuất file .srt chuẩn phục vụ xuất bản / LMS
     generate_subtitles_from_script(
         slides_data=slides_data,
         output_srt=final_srt,
@@ -317,13 +322,18 @@ def assemble_final_video(
     ]
     subprocess.run(cmd_concat, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
 
-    # 3. Chuẩn hóa âm lượng EBU R128 (-16 LUFS) và Hardsub phụ đề vào video thành phẩm
-    print("\n[*] Bước 3/3: Chuẩn hóa âm lượng EBU R128 (-16 LUFS) và hardsub phụ đề...")
+    # 3. Chuẩn hóa âm lượng EBU R128 (-16 LUFS) và Hardsub phụ đề chuyên nghiệp vào video
+    print("\n[*] Bước 3/3: Chuẩn hóa âm lượng EBU R128 (-16 LUFS) và hardsub phụ đề .ass...")
 
-    # Format đường dẫn file SRT an toàn cho filter subtitles của FFmpeg
-    srt_escaped = str(final_srt.resolve()).replace("\\", "/").replace(":", "\\:")
-    sub_style = "FontSize=22,FontName=Arial,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2.5,Shadow=1,MarginV=40"
-    video_filter = f"subtitles='{srt_escaped}':force_style='{sub_style}'"
+    # Format đường dẫn file ASS và thư mục font an toàn cho FFmpeg
+    ass_escaped = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
+    fonts_dir_path = config.PROJECT_ROOT / "fonts"
+    if fonts_dir_path.exists():
+        fonts_escaped = str(fonts_dir_path.resolve()).replace("\\", "/").replace(":", "\\:")
+        video_filter = f"subtitles='{ass_escaped}':fontsdir='{fonts_escaped}'"
+    else:
+        video_filter = f"subtitles='{ass_escaped}'"
+
     audio_filter = "loudnorm=I=-16:TP=-1.5:LRA=11"
 
     cmd_final = [
@@ -362,6 +372,7 @@ def assemble_final_video(
         "total_slides": len(slides_data),
         "final_video": str(final_video.relative_to(config.PROJECT_ROOT)),
         "final_srt": str(final_srt.relative_to(config.PROJECT_ROOT)),
+        "final_ass": str(ass_path.relative_to(config.PROJECT_ROOT)),
         "timestamp": time.time(),
         "slides": slides_data
     }
@@ -369,5 +380,6 @@ def assemble_final_video(
         json.dump(checkpoint_payload, f, ensure_ascii=False, indent=2)
 
     print(f"\n🎉 HOÀN THÀNH: Video bài giảng hoàn chỉnh đã xuất tại:\n   -> {final_video.resolve()}")
-    print(f"📄 Phụ đề: {final_srt.resolve()}")
+    print(f"📄 Phụ đề ASS: {ass_path.resolve()}")
+    print(f"📄 Phụ đề SRT: {final_srt.resolve()}")
     return final_video, final_srt
