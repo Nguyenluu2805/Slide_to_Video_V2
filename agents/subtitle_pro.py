@@ -2,19 +2,19 @@
 agents/subtitle_pro.py — Phụ đề kiểu video thuyết minh chuyên nghiệp V2 (chuẩn Coursera / Khan Academy / 3Blue1Brown)
 Cho dự án Slide_to_Video_V2:
   1. Nguồn chữ = script.json (kịch bản đã duyệt), KHÔNG dùng Whisper nghe lại.
-  2. Tối đa 2 dòng, 38 ký tự/dòng, 1-5 giây/câu, căn giữa tuyệt đối (Alignment 2).
-  3. Font Be Vietnam Pro, size 30, PrimaryColour trắng ngà #F5F5F4, BackColour trong suốt.
-  4. Từ khóa (thuật ngữ tiếng Anh, số liệu): CHỈ bọc bằng {\\b1} (đậm), KHÔNG đổi màu.
-  5. Phụ đề nằm cách đáy 110px (MarginV 110), lề trái/phải MarginL/R 160.
-  6. Tự động cân bằng 2 dòng phụ đề, loại bỏ hoàn toàn từ lẻ loi (orphan) ở dòng 2.
-  7. Tương thích hoàn hảo với chuyển cảnh xfade 0.5s giữa các slide.
+  2. BỎ HỘP NỀN: Trong suốt hoàn toàn, không dùng hộp nền, không gradient đáy.
+  3. Màu chữ: Trắng ngà #F5F5F4, font Be Vietnam Pro size 30, viền Outline 1.0, bóng Shadow 0.6.
+  4. Từ khóa: CHỈ bọc bằng {\\b1} (đậm), KHÔNG đổi màu vàng/xanh.
+  5. Căn giữa tuyệt đối (Alignment 2), cách đáy 110px (MarginV 110), lề trái/phải MarginL/R 160.
+  6. Chia phụ đề theo cụm ý: mỗi lần hiện <= 11 từ, <= 65 ký tự, thời lượng 1.2-3.5s, <= 20 ký tự/giây.
+  7. Tối đa 2 dòng, mỗi dòng <= 38 ký tự, không để dòng 2 bị lẻ loi (orphan) — cân đều 2 dòng.
 """
 
 import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-# Thuật ngữ / mẫu từ khóa nhận diện bọc đậm {\\b1} (không đổi màu trong V2)
+# Thuật ngữ / mẫu từ khóa nhận diện bọc đậm {\\b1}
 KEYWORD_PATTERNS = [
     r"State Machine", r"LangGraph", r"Hybrid Workflow", r"Deterministic Code",
     r"Pure LLM", r"Pure Agentic", r"Agentic(?:\s+Decision)?\s+Nodes?", r"Ex0\d",
@@ -30,7 +30,7 @@ KEYWORD_PATTERNS = [
 ]
 _KEYWORD_RE = re.compile("(" + "|".join(KEYWORD_PATTERNS) + ")", re.IGNORECASE)
 
-# Header & Style chuẩn V2 theo đặc tả Coursera / Khan Academy
+# Header & Style chuẩn V2 — KHÔNG hộp nền
 ASS_HEADER_V2 = """[Script Info]
 ScriptType: v4.00+
 PlayResX: 1920
@@ -46,10 +46,10 @@ Style: ProV2,Be Vietnam Pro,30,&H00F5F5F4,&H00F5F5F4,&H00000000,&H00000000,-1,0,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
-# Các liên từ / giới từ tiếng Việt hỗ trợ ngắt câu tự nhiên theo ngữ nghĩa
+# Các liên từ / giới từ tiếng Việt hỗ trợ ngắt nhịp tự nhiên theo ngữ nghĩa
 CONJUNCTIONS = {
     'và', 'hoặc', 'nhưng', 'mà', 'thì', 'là', 'của', 'để', 'với', 'trong',
-    'khi', 'nếu', 'như', 'do', 'tại', 'bởi', 'giúp', 'cho', 'về', 'từ'
+    'khi', 'nếu', 'như', 'do', 'tại', 'bởi', 'giúp', 'cho', 'về', 'từ', 'vào', 'ra', 'lên', 'xuống'
 }
 
 
@@ -65,7 +65,7 @@ def _highlight_v2(text: str) -> str:
     """
     Từ khóa: CHỈ bọc bằng {\\b1} (đậm), KHÔNG đổi màu (chuẩn V2 tối giản).
     Ví dụ trong .ass: {\\b1}State Machine{\\b0} — còn lại để \\b0 (thường).
-    Tuyệt đối không dùng {\\1c&H...&} tô màu vàng / xanh.
+    Tuyệt đối không dùng mã màu vàng / xanh.
     """
     parts = _KEYWORD_RE.split(text)
     out = []
@@ -79,11 +79,98 @@ def _highlight_v2(text: str) -> str:
     return r"{\b0}" + "".join(out)
 
 
+def chunk_text_pedagogical(script: str, max_words: int = 11, max_chars: int = 65) -> List[str]:
+    """
+    Chia kịch bản theo cụm ý (Quy tắc 3c):
+    - 1 lần hiện <= 11 từ VÀ <= 65 ký tự.
+    - Không ngắt cứng theo câu. Gom từ thành cụm, ngắt khi đủ 11 từ hoặc 65 ký tự.
+    - Ưu tiên ngắt sau dấu phẩy / dấu câu hoặc trước liên từ.
+    - Câu dài không có dấu phẩy vẫn ngắt theo giới hạn từ/ký tự.
+    - Bảo toàn số thập phân 99.9%, 3.5, 30 giây.
+    """
+    if not script or not script.strip():
+        return []
+
+    safe = re.sub(r'(\d+)\.(\d+)', r'\1DECIMALDOT\2', script)
+    safe = re.sub(r'(\d+),(\d+)', r'\1DECIMALCOMMA\2', safe)
+    safe = re.sub(r'\s+', ' ', safe).strip()
+    words = safe.split()
+    if not words:
+        return []
+
+    chunks = []
+    i = 0
+    n = len(words)
+
+    while i < n:
+        # Xác định số từ tối đa có thể lấy mà không vượt quá max_words hoặc max_chars
+        max_take = 0
+        cur_len = 0
+        for j in range(i, min(n, i + max_words)):
+            w = words[j]
+            new_len = cur_len + len(w) + (1 if cur_len > 0 else 0)
+            if new_len > max_chars:
+                break
+            cur_len = new_len
+            max_take += 1
+
+        if max_take == 0:
+            max_take = 1
+
+        # Nếu lấy hết phần còn lại mà vừa vặn thì lấy luôn
+        if i + max_take >= n:
+            chunks.append(' '.join(words[i:n]))
+            break
+
+        # Tìm điểm ngắt tối ưu trong khoảng [min_take, max_take]
+        min_take = max(4, max_take - 6)
+        best_k = max_take
+        best_score = -float('inf')
+
+        for k in range(max_take, min_take - 1, -1):
+            w_curr = words[i + k - 1]
+            w_next = words[i + k] if (i + k < n) else ''
+            w_next_clean = re.sub(r'[^a-zA-Zà-ỹÀ-Ỹ]', '', w_next).lower()
+
+            # Điểm cơ sở: ưu tiên kích thước cụm hài hòa 7-9 từ
+            score = 10 - abs(k - 8)
+
+            # Thưởng lớn nếu ngắt tại dấu câu
+            if w_curr.endswith(('.', '!', '?')):
+                score += 50
+            elif w_curr.endswith((',', ';', ':', '—', '-')):
+                score += 40
+
+            # Thưởng lớn nếu từ tiếp theo là liên từ / giới từ
+            if w_next_clean in CONJUNCTIONS:
+                score += 35
+
+            if score > best_score:
+                best_score = score
+                best_k = k
+
+        chunk_words = words[i:i + best_k]
+        chunks.append(' '.join(chunk_words))
+        i += best_k
+
+    # Gộp cụm cuối nếu quá ngắn (< 3 từ) vào cụm liền trước nếu vừa
+    if len(chunks) > 1:
+        last_words = chunks[-1].split()
+        if len(last_words) < 3:
+            prev_words = chunks[-2].split()
+            comb = f"{chunks[-2]} {chunks[-1]}"
+            if len(prev_words) + len(last_words) <= max_words and len(comb) <= max_chars:
+                chunks[-2] = comb
+                chunks.pop()
+
+    return [c.replace('DECIMALDOT', '.').replace('DECIMALCOMMA', ',').strip() for c in chunks]
+
+
 def split_lines_balanced(text: str, max_chars: int = 38) -> str:
     """
     Chia 1 câu phụ đề thành tối đa 2 dòng cân đối (chuẩn V2):
-    - Tối đa 38 ký tự/dòng.
-    - Căn bằng độ dài 2 dòng, không để dòng 2 quá ngắn hoặc quá dài.
+    - Tối đa 2 dòng, mỗi dòng <= 38 ký tự.
+    - Cân bằng độ dài 2 dòng, không để dòng 2 quá ngắn hoặc quá dài.
     - Loại bỏ hoàn toàn hiện tượng từ lẻ loi (orphan) ở dòng 2.
     - Ưu tiên ngắt tại dấu phẩy / dấu chấm phẩy hoặc ngay trước liên từ.
     """
@@ -106,23 +193,24 @@ def split_lines_balanced(text: str, max_chars: int = 38) -> str:
         words_l2 = len(words) - 1 - i
         orphan_penalty = 0
         if words_l2 == 1:
-            orphan_penalty = 600
+            orphan_penalty = 2000
         elif words_l2 == 2 and len(line2) < 10:
-            orphan_penalty = 250
+            orphan_penalty = 800
 
-        overflow1 = max(0, len(line1) - max_chars) * 25
-        overflow2 = max(0, len(line2) - max_chars) * 25
+        # Phạt cực nặng nếu bất kỳ dòng nào vượt quá 38 ký tự
+        overflow1 = max(0, len(line1) - max_chars) * 10000
+        overflow2 = max(0, len(line2) - max_chars) * 10000
 
-        balance_penalty = abs(len(line1) - target_mid) * 1.5
+        balance_penalty = abs(len(line1) - target_mid) * 2.0
 
         punct_bonus = 0
         if words[i].endswith((',', ';', ':', '—', '-')):
-            punct_bonus = 35
+            punct_bonus = 40
 
         conj_bonus = 0
         next_word_clean = re.sub(r'[^a-zA-Zà-ỹÀ-Ỹ]', '', words[i + 1]).lower()
         if next_word_clean in CONJUNCTIONS:
-            conj_bonus = 25
+            conj_bonus = 30
 
         score = balance_penalty + overflow1 + overflow2 + orphan_penalty - punct_bonus - conj_bonus
         if score < best_score:
@@ -137,63 +225,6 @@ def split_lines_balanced(text: str, max_chars: int = 38) -> str:
     return text
 
 
-def _split_into_clauses_v2(script: str, max_words: int = 11, min_words: int = 4) -> List[str]:
-    """
-    Chia kịch bản thành các câu hoặc mệnh đề ngắn sư phạm:
-    - Bảo vệ số thập phân (99.9%, 3.5, 30 giây, ...).
-    - Tách theo ranh giới câu [.!?] -> tách theo dấu phẩy / chấm phẩy -> tách từ nếu câu quá dài.
-    - Đảm bảo mỗi khối <= max_words từ (tương đương 1-5 giây giọng đọc, <= 65 ký tự).
-    """
-    safe = re.sub(r"(\d+)\.(\d+)", r"\1DECIMALDOT\2", script)
-    safe = re.sub(r"(\d+),(\d+)", r"\1DECIMALCOMMA\2", safe)
-    safe = re.sub(r"\s+", " ", safe).strip()
-
-    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", safe) if s.strip()]
-
-    raw_units = []
-    for sent in sentences:
-        words = sent.split()
-        if len(words) <= max_words:
-            raw_units.append(sent)
-        else:
-            clauses = [c.strip() for c in re.split(r"(?<=[,;:])\s+", sent) if c.strip()]
-            curr = []
-            for c in clauses:
-                c_words = c.split()
-                if len(curr) + len(c_words) <= max_words:
-                    curr.extend(c_words)
-                else:
-                    if curr:
-                        raw_units.append(" ".join(curr))
-                        curr = []
-                    if len(c_words) > max_words:
-                        for i in range(0, len(c_words), max_words):
-                            raw_units.append(" ".join(c_words[i:i + max_words]))
-                    else:
-                        curr = list(c_words)
-            if curr:
-                raw_units.append(" ".join(curr))
-
-    # Gộp các khối quá ngắn (< min_words từ) vào khối liền kề
-    merged = []
-    for u in raw_units:
-        u_words = u.split()
-        if merged and len(u_words) < min_words:
-            prev = merged[-1]
-            if len(prev.split()) + len(u_words) <= (max_words + 3):
-                merged[-1] = f"{prev} {u}"
-                continue
-        merged.append(u)
-
-    final_chunks = []
-    for m in merged:
-        res = m.replace("DECIMALDOT", ".").replace("DECIMALCOMMA", ",").strip()
-        if res:
-            final_chunks.append(res)
-
-    return final_chunks if final_chunks else [script]
-
-
 def build_ass_from_script(
     slides_data: List[Dict[str, Any]],
     output_ass: Path,
@@ -204,9 +235,11 @@ def build_ass_from_script(
 ) -> Path:
     """
     Sinh file .ass từ script.json + duration audio thật của từng slide theo chuẩn V2:
-    - Font Be Vietnam Pro, size 30, chữ trắng ngà #F5F5F4, viền mỏng, BackColour trong suốt.
+    - BỎ HỘP NỀN: Trong suốt hoàn toàn, không dùng hộp nền, không gradient đáy.
+    - Font Be Vietnam Pro, size 30, chữ trắng ngà #F5F5F4, viền Outline 1.0, bóng Shadow 0.6.
     - Căn giữa tuyệt đối (Alignment 2), cách đáy 110px (MarginV 110), lề trái/phải 160.
-    - Tối đa 2 dòng, 38 ký tự/dòng, không có từ lẻ loi ở dòng 2.
+    - Mỗi lần hiện: <= 11 từ VÀ <= 65 ký tự, thời lượng 1.2-3.5s, <= 20 ký tự/giây.
+    - Tối đa 2 dòng, mỗi dòng <= 38 ký tự, không có từ lẻ loi ở dòng 2.
     - Từ khóa: CHỈ bọc {\\b1}...{\\b0} (đậm), KHÔNG đổi màu vàng/xanh.
     - Bù trừ offset chuẩn xác khi áp dụng chuyển cảnh crossfade 0.5s giữa các slide.
     """
@@ -244,11 +277,13 @@ def build_ass_from_script(
         if not script or audio_dur <= 0:
             continue
 
-        clauses = _split_into_clauses_v2(script, max_words=11, min_words=4)
+        cues = chunk_text_pedagogical(script, max_words=11, max_chars=65)
+        if not cues:
+            continue
 
-        # Tính trọng số cho từng câu (số từ + bonus ngắt nhịp)
+        # Tính trọng số cho từng cụm theo số từ và dấu câu
         weights = []
-        for c in clauses:
+        for c in cues:
             w_count = len(c.split())
             bonus = 1.0 if c.endswith(('.', '!', '?')) else (0.5 if c.endswith((',', ';', ':')) else 0.0)
             weights.append(max(1.0, w_count + bonus))
@@ -259,8 +294,12 @@ def build_ass_from_script(
         speech_start_time = slide_start_offset + pre_pause
         curr_t = speech_start_time
 
-        for c, dur in zip(clauses, durations):
-            dur = max(1.0, min(5.0, dur))
+        for c, raw_dur in zip(cues, durations):
+            # Quy tắc cứng 3c: 1.2s - 3.5s và <= 20 ký tự/giây
+            dur = max(1.2, min(3.5, raw_dur))
+            if dur > 0 and (len(c) / dur) > 20.0:
+                dur = min(3.5, len(c) / 18.0)
+
             formatted_text = split_lines_balanced(c, max_chars=38)
             highlighted = _highlight_v2(formatted_text)
             start_str = _fmt_ass_time(curr_t)
@@ -272,5 +311,5 @@ def build_ass_from_script(
 
     output_ass.parent.mkdir(parents=True, exist_ok=True)
     output_ass.write_text(ASS_HEADER_V2 + "\n".join(events) + "\n", encoding="utf-8")
-    print(f"[+] Đã xuất file phụ đề chuyên nghiệp V2 ({len(events)} khối, max 38 ký tự/dòng): {output_ass.name}")
+    print(f"[+] Đã xuất file phụ đề chuyên nghiệp V2 ({len(events)} khối, max 11 từ / 65 ký tự, max 38 ký tự/dòng): {output_ass.name}")
     return output_ass
