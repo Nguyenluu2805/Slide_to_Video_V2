@@ -16,9 +16,9 @@ def test_v2_subtitle_logic():
     print("KIỂM TRA LOGIC PHỤ ĐỀ V2")
     print("=" * 60)
 
-    # 1. Kiểm tra ASS Header & Style ProV2
-    assert "Style: ProV2,Be Vietnam Pro,30,&H00F5F5F4,&H00F5F5F4,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,1.0,0.6,2,160,160,110,1" in ASS_HEADER_V2, "Sai Style ProV2"
-    print("-> [OK] Style ProV2 chuẩn xác 100% (Font 30, Trắng ngà #F5F5F4, MarginV 110, MarginL/R 160, Alignment 2).")
+    # 1. Kiểm tra ASS Header & Style ProV2 (Font size lớn 42 rõ nét, không hộp nền)
+    assert "Style: ProV2,Be Vietnam Pro,42,&H00F5F5F4,&H00F5F5F4,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,1.4,0.8,2,160,160,100,1" in ASS_HEADER_V2, "Sai Style ProV2"
+    print("-> [OK] Style ProV2 chuẩn xác 100% (Font 42 rõ nét, Trắng ngà #F5F5F4, MarginV 100, MarginL/R 160, Alignment 2).")
 
     # 2. Kiểm tra từ khóa: CHỈ bọc {\b1}, KHÔNG có mã màu {\1c...}
     sample_text = "Hệ thống dùng State Machine kết hợp với 99.9% độ tin cậy và Ex01 LangGraph."

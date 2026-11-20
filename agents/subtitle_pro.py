@@ -3,9 +3,9 @@ agents/subtitle_pro.py — Phụ đề kiểu video thuyết minh chuyên nghi�
 Cho dự án Slide_to_Video_V2:
   1. Nguồn chữ = script.json (kịch bản đã duyệt), KHÔNG dùng Whisper nghe lại.
   2. BỎ HỘP NỀN: Trong suốt hoàn toàn, không dùng hộp nền, không gradient đáy.
-  3. Màu chữ: Trắng ngà #F5F5F4, font Be Vietnam Pro size 30, viền Outline 1.0, bóng Shadow 0.6.
+  3. Màu chữ: Trắng ngà #F5F5F4, font Be Vietnam Pro size 42 (tăng từ 30 để rõ nét), viền Outline 1.4, bóng Shadow 0.8.
   4. Từ khóa: CHỈ bọc bằng {\\b1} (đậm), KHÔNG đổi màu vàng/xanh.
-  5. Căn giữa tuyệt đối (Alignment 2), cách đáy 110px (MarginV 110), lề trái/phải MarginL/R 160.
+  5. Căn giữa tuyệt đối (Alignment 2), cách đáy 100px (MarginV 100), lề trái/phải MarginL/R 160.
   6. Chia phụ đề theo cụm ý: mỗi lần hiện <= 11 từ, <= 65 ký tự, thời lượng 1.2-3.5s, <= 20 ký tự/giây.
   7. Tối đa 2 dòng, mỗi dòng <= 38 ký tự, không để dòng 2 bị lẻ loi (orphan) — cân đều 2 dòng.
 """
@@ -13,6 +13,8 @@ Cho dự án Slide_to_Video_V2:
 import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+
+import config
 
 # Thuật ngữ / mẫu từ khóa nhận diện bọc đậm {\\b1}
 KEYWORD_PATTERNS = [
@@ -30,8 +32,19 @@ KEYWORD_PATTERNS = [
 ]
 _KEYWORD_RE = re.compile("(" + "|".join(KEYWORD_PATTERNS) + ")", re.IGNORECASE)
 
-# Header & Style chuẩn V2 — KHÔNG hộp nền
-ASS_HEADER_V2 = """[Script Info]
+
+def get_ass_header_v2(
+    font_size: Optional[int] = None,
+    outline: Optional[float] = None,
+    shadow: Optional[float] = None,
+    margin_v: Optional[int] = None,
+) -> str:
+    """Tạo Header & Style ASS chuẩn V2 không hộp nền với kích thước font tối ưu."""
+    fs = font_size if font_size is not None else getattr(config, "SUBTITLE_FONT_SIZE", 42)
+    ol = outline if outline is not None else getattr(config, "SUBTITLE_OUTLINE", 1.4)
+    sh = shadow if shadow is not None else getattr(config, "SUBTITLE_SHADOW", 0.8)
+    mv = margin_v if margin_v is not None else getattr(config, "SUBTITLE_MARGIN_V", 100)
+    return f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1920
 PlayResY: 1080
@@ -40,11 +53,15 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: ProV2,Be Vietnam Pro,30,&H00F5F5F4,&H00F5F5F4,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,1.0,0.6,2,160,160,110,1
+Style: ProV2,Be Vietnam Pro,{fs},&H00F5F5F4,&H00F5F5F4,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,{ol},{sh},2,160,160,{mv},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
+
+
+# Header & Style chuẩn V2 mặc định
+ASS_HEADER_V2 = get_ass_header_v2()
 
 # Các liên từ / giới từ tiếng Việt hỗ trợ ngắt nhịp tự nhiên theo ngữ nghĩa
 CONJUNCTIONS = {
@@ -232,12 +249,13 @@ def build_ass_from_script(
     post_pause: float = 1.5,
     use_crossfade: bool = True,
     crossfade_dur: float = 0.5,
+    font_size: Optional[int] = None,
 ) -> Path:
     """
     Sinh file .ass từ script.json + duration audio thật của từng slide theo chuẩn V2:
     - BỎ HỘP NỀN: Trong suốt hoàn toàn, không dùng hộp nền, không gradient đáy.
-    - Font Be Vietnam Pro, size 30, chữ trắng ngà #F5F5F4, viền Outline 1.0, bóng Shadow 0.6.
-    - Căn giữa tuyệt đối (Alignment 2), cách đáy 110px (MarginV 110), lề trái/phải 160.
+    - Font Be Vietnam Pro, size lớn 42 rõ nét, chữ trắng ngà #F5F5F4, viền Outline 1.4, bóng Shadow 0.8.
+    - Căn giữa tuyệt đối (Alignment 2), cách đáy 100px (MarginV 100), lề trái/phải 160.
     - Mỗi lần hiện: <= 11 từ VÀ <= 65 ký tự, thời lượng 1.2-3.5s, <= 20 ký tự/giây.
     - Tối đa 2 dòng, mỗi dòng <= 38 ký tự, không có từ lẻ loi ở dòng 2.
     - Từ khóa: CHỈ bọc {\\b1}...{\\b0} (đậm), KHÔNG đổi màu vàng/xanh.
@@ -309,7 +327,8 @@ def build_ass_from_script(
             )
             curr_t += dur
 
+    header = get_ass_header_v2(font_size=font_size)
     output_ass.parent.mkdir(parents=True, exist_ok=True)
-    output_ass.write_text(ASS_HEADER_V2 + "\n".join(events) + "\n", encoding="utf-8")
+    output_ass.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     print(f"[+] Đã xuất file phụ đề chuyên nghiệp V2 ({len(events)} khối, max 11 từ / 65 ký tự, max 38 ký tự/dòng): {output_ass.name}")
     return output_ass

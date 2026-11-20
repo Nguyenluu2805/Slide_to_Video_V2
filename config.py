@@ -173,6 +173,12 @@ SLIDE_PRE_PAUSE = float(os.getenv("SLIDE_PRE_PAUSE", "0.8"))    # Dừng 0.8s đ
 SLIDE_POST_PAUSE = float(os.getenv("SLIDE_POST_PAUSE", "1.5"))  # Dừng 1.5s cuối slide sau khi nói xong
 SLIDE_PAUSE_DURATION = SLIDE_PRE_PAUSE + SLIDE_POST_PAUSE
 
+# Cấu hình kích thước & hiển thị phụ đề Pro V2
+SUBTITLE_FONT_SIZE = int(os.getenv("SUBTITLE_FONT_SIZE", "42"))
+SUBTITLE_OUTLINE = float(os.getenv("SUBTITLE_OUTLINE", "1.4"))
+SUBTITLE_SHADOW = float(os.getenv("SUBTITLE_SHADOW", "0.8"))
+SUBTITLE_MARGIN_V = int(os.getenv("SUBTITLE_MARGIN_V", "100"))
+
 # 5. Hàm kiểm tra thiết bị phần cứng thực tế (Không báo khống)
 def get_hardware_device_info() -> dict:
     """Trả về thông tin thiết bị thực tế (CPU hoặc GPU CUDA)."""
