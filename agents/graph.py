@@ -14,7 +14,7 @@ from typing import Dict, Any, List, Optional, TypedDict
 from langgraph.graph import StateGraph, START, END
 
 import config
-from agents.parse import parse_presentation
+from agents.parse import parse_presentation, parse_pdf
 from agents.script import generate_scripts_with_checkpoint
 from agents.voice import get_audio_duration_seconds
 
@@ -26,6 +26,7 @@ class VideoAgentState(TypedDict, total=False):
     draft_mode: bool
     provider: str
     voice: Optional[str]
+    pages: Optional[str]
     slides: List[Dict[str, Any]]
     current_node: str
     error: Optional[str]
@@ -35,18 +36,31 @@ class VideoAgentState(TypedDict, total=False):
 
 
 def node_parse(state: VideoAgentState) -> Dict[str, Any]:
-    """Node 1: Trích xuất slide thật 1080p và speaker notes."""
+    """Node 1: Trích xuất slide thật 1080p và speaker notes (PowerPoint .pptx hoặc PDF)."""
+    input_p = Path(state["pptx_path"])
+    ext = input_p.suffix.lower()
+    is_pdf = ext == ".pdf"
+    type_label = "PDF" if is_pdf else "PowerPoint"
+
     print("\n" + "=" * 60)
-    print("📍 [NODE 1: PARSE] Đang trích xuất slide PowerPoint thật...")
+    print(f"📍 [NODE 1: PARSE] Đang trích xuất tài liệu {type_label} thật...")
     print("=" * 60)
     print("[TIMING] node parse bắt đầu...")
     t0 = time.time()
-    pptx_p = Path(state["pptx_path"])
+    pages_range = state.get("pages")
+
     try:
-        slides_data = parse_presentation(pptx_p)
+        if is_pdf:
+            slides_data = parse_pdf(input_p, page_range=pages_range)
+        elif ext == ".pptx":
+            slides_data = parse_presentation(input_p, page_range=pages_range)
+        else:
+            raise ValueError(f"Chỉ nhận .pptx và .pdf, không hỗ trợ định dạng: {input_p.name}")
+
         elapsed = time.time() - t0
         print(f"[TIMING] node parse: {elapsed:.2f}s")
-        print(f"[+] Trích xuất thành công {len(slides_data)} slide.")
+        unit_label = "trang" if is_pdf else "slide"
+        print(f"[+] Trích xuất thành công {len(slides_data)} {unit_label}.")
         timings = dict(state.get("timings", {}))
         timings["parse"] = round(elapsed, 2)
         return {
@@ -310,7 +324,8 @@ def run_pipeline(
     reset_mode: bool = False,
     provider: str = config.TTS_PROVIDER,
     voice: Optional[str] = None,
-    draft_mode: bool = False
+    draft_mode: bool = False,
+    pages: Optional[str] = None
 ) -> Dict[str, Any]:
     """Hàm thực thi chính của LangGraph Pipeline."""
     if draft_mode:
@@ -342,6 +357,7 @@ def run_pipeline(
         "draft_mode": draft_mode or getattr(config, "DRAFT_MODE", False),
         "provider": provider,
         "voice": voice,
+        "pages": pages,
         "slides": [],
         "current_node": "start",
         "error": None,

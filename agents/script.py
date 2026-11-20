@@ -111,33 +111,50 @@ def build_slide_prompt(
     next_title: str = "",
     retry_feedback: str = ""
 ) -> str:
-    """Tạo prompt chuẩn mực cho 1 slide theo đúng quy chuẩn V2."""
+    """Tạo prompt chuẩn mực cho 1 slide theo đúng quy chuẩn V2 (hỗ trợ cả PPTX và PDF)."""
     slide = slide_entry.get("slide", {})
     slide_id = slide.get("id", 1)
     title = slide.get("title", "")
     bullets = slide.get("bullets", [])
     notes = slide.get("notes", "")
+    source = slide.get("source", "")
+    uses_notes = slide_entry.get("scene", {}).get("grounding", {}).get("uses_notes", bool(notes))
 
+    is_pdf = (not uses_notes) and (str(source).startswith("pdf") or "pdf" in str(source))
     has_notes = bool(notes.strip())
 
-    prompt = f"""Bạn là một giảng viên đại học và chuyên gia thuyết trình xuất sắc.
-Nhiệm vụ: Viết LỜI THUYẾT MINH DIỄN THUYẾT TỰ NHIÊN cho DUY NHẤT Slide số {slide_id}.
-
-=== DỮ LIỆU ĐẦU VÀO CỦA SLIDE {slide_id} ===
+    if is_pdf:
+        input_data_section = f"""=== DỮ LIỆU ĐẦU VÀO CỦA TRANG TÀI LIỆU PDF {slide_id} ===
+- Tiêu đề trang: {title}
+- Gạch đầu dòng / Nội dung trên trang (Bullets): {json.dumps(bullets, ensure_ascii=False)}
+- Ghi chú: (Tài liệu PDF không có Speaker Notes - Chữ trên trang là nguồn duy nhất)"""
+        content_source_rule = """1. NGUỒN NỘI DUNG (DÀNH CHO TÀI LIỆU PDF - NGUỒN DUY NHẤT 100%):
+   - Chữ trên trang là NGUỒN DUY NHẤT (100% nội dung bài giảng), tài liệu PDF KHÔNG có speaker notes.
+   - Kịch bản chỉ được diễn giải, làm rõ, mở rộng và kể ví dụ minh họa từ CHÍNH các thông tin, thuật ngữ và số liệu trên trang.
+   - TUYỆT ĐỐI CẤM BỊA ĐẶT số liệu, tên người, công nghệ, kết luận hoặc kiến thức ngoài lề không xuất hiện trên trang.
+   - Phong cách sư phạm "làm hỏng trước rồi cứu ngay" (nêu bật thách thức / rủi ro trước, sau đó đưa ra giải pháp), giải thích mạch lạc từng ý chính, KHÔNG đọc nguyên văn bullet."""
+    else:
+        input_data_section = f"""=== DỮ LIỆU ĐẦU VÀO CỦA SLIDE {slide_id} ===
 - Tiêu đề slide: {title}
 - Gạch đầu dòng (Bullets): {json.dumps(bullets, ensure_ascii=False)}
-- Ghi chú diễn giả (Speaker Notes): {notes if has_notes else "(Không có notes, chỉ được diễn giải từ các bullet)"}
+- Ghi chú diễn giả (Speaker Notes): {notes if has_notes else "(Không có notes, chỉ được diễn giải từ các bullet)"}"""
+        content_source_rule = """1. NGUỒN NỘI DUNG (RẤT QUAN TRỌNG):
+   - Speaker Notes là nguồn chính (chiếm 70% nội dung lời nói).
+   - Bullets + Tiêu đề là nguồn phụ (chiếm 30% nội dung để đảm bảo không bỏ sót ý chính).
+   - CẤM BỊA ĐẶT số liệu, tên người, công nghệ hoặc kết luận không có trong slide và speaker notes.
+   - Nếu không có speaker notes: chỉ diễn giải mở rộng từ các bullets, tuyệt đối không thêm ý ngoài lề."""
+
+    prompt = f"""Bạn là một giảng viên đại học và chuyên gia thuyết trình xuất sắc.
+Nhiệm vụ: Viết LỜI THUYẾT MINH DIỄN THUYẾT TỰ NHIÊN cho DUY NHẤT Slide/Trang số {slide_id}.
+
+{input_data_section}
 
 === THÔNG TIN LIÊN KẾT BÀI GIẢNG ===
 - Tóm tắt ý slide trước: {previous_summary or "Đây là slide mở đầu bài giảng."}
 - Tiêu đề slide tiếp theo: {next_title or "Đây là slide kết thúc bài giảng."}
 
 === QUY TẮC BẮT BUỘC (TUÂN THỦ 100%) ===
-1. NGUỒN NỘI DUNG (RẤT QUAN TRỌNG):
-   - Speaker Notes là nguồn chính (chiếm 70% nội dung lời nói).
-   - Bullets + Tiêu đề là nguồn phụ (chiếm 30% nội dung để đảm bảo không bỏ sót ý chính).
-   - CẤM BỊA ĐẶT số liệu, tên người, công nghệ hoặc kết luận không có trong slide và speaker notes.
-   - Nếu không có speaker notes: chỉ diễn giải mở rộng từ các bullets, tuyệt đối không thêm ý ngoài lề.
+{content_source_rule}
 
 2. ĐỘ DÀI LỜI THUYẾT TRÌNH (BẮT BUỘC):
    - Tổng độ dài kịch bản PHẢI NẰM TRONG KHOẢNG TỪ 150 ĐẾN 220 TỪ TIẾNG VIỆT (Tương đương 60 - 90 giây khi đọc).
@@ -308,7 +325,13 @@ def generate_scripts_with_checkpoint(
         prev_summary = ""
         if i > 0:
             prev_slide = slides_data[i - 1]["slide"]
-            prev_summary = f"{prev_slide.get('title', '')} - Ghi chú: {prev_slide.get('notes', '')[:80]}"
+            prev_notes = (prev_slide.get('notes') or "").strip()
+            prev_title = prev_slide.get('title', '')
+            if prev_notes:
+                prev_summary = f"{prev_title} - Ghi chú: {prev_notes[:80]}"
+            else:
+                bullets_preview = " | ".join(prev_slide.get('bullets', []))[:80]
+                prev_summary = f"{prev_title}: {bullets_preview}" if bullets_preview else prev_title
 
         next_title = ""
         if i < total_slides - 1:

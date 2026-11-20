@@ -15,3 +15,4 @@ tqdm>=4.66.0
 rich>=13.0.0
 pydub>=0.25.1
 imageio-ffmpeg>=0.5.1
+PyMuPDF>=1.24

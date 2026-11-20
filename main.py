@@ -60,15 +60,27 @@ def parse_args():
         default=None,
         help="Tên giọng đọc (Ví dụ: zerotts:maichi hoặc vi-VN-NamMinhNeural)"
     )
+    parser.add_argument(
+        "--pages",
+        type=str,
+        default=None,
+        help="Giới hạn phạm vi trang/slide cần xử lý (Ví dụ: 1-2, 1-3, hoặc 2). Mặc định xử lý toàn bộ."
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    pptx_path = Path(args.slides)
-    if not pptx_path.exists():
-        print(f"[!] Lỗi: Không tìm thấy file PowerPoint tại: {pptx_path}")
+    input_path = Path(args.slides)
+    if not input_path.exists():
+        print(f"[!] Lỗi: Không tìm thấy file PowerPoint/PDF tại: {input_path}")
         print("Vui lòng kiểm tra lại đường dẫn file bài giảng.")
+        sys.exit(1)
+
+    ext = input_path.suffix.lower()
+    if ext not in [".pptx", ".pdf"]:
+        print(f"[!] Lỗi: Định dạng file không được hỗ trợ: {input_path}")
+        print("Hệ thống chỉ nhận file PowerPoint (.pptx) và PDF (.pdf).")
         sys.exit(1)
 
     if args.draft:
@@ -78,9 +90,32 @@ def main():
             if not args.voice:
                 args.voice = config.EDGE_TTS_VOICE
 
+    # Xác định thông tin loại đầu vào cho banner
+    if ext == ".pdf":
+        try:
+            import fitz
+            doc = fitz.open(str(input_path.resolve()))
+            total_items = len(doc)
+            doc.close()
+            input_banner = f"PDF ({total_items} trang)"
+        except Exception:
+            input_banner = "PDF"
+    else:
+        try:
+            from pptx import Presentation
+            prs = Presentation(str(input_path.resolve()))
+            total_items = len(prs.slides)
+            input_banner = f"PPTX ({total_items} slide)"
+        except Exception:
+            input_banner = "PPTX"
+
+    if args.pages:
+        input_banner += f" [Chọn phạm vi: {args.pages}]"
+
     print("=" * 70)
     print("🚀 AI VIDEO AGENT V2 — STUDIO THUYẾT TRÌNH BÀI GIẢNG")
-    print(f"📁 Slide Input     : {pptx_path}")
+    print(f"📁 File Input      : {input_path}")
+    print(f"📄 Input           : {input_banner}")
     print(f"⚡ Chế độ          : {'NHÁP SIÊU TỐC (--draft: Edge-TTS + Static Render)' if args.draft else 'BẢN CUỐI (ZeroTTS + Ken Burns d=1)'}")
     print(f"🎙️ TTS Provider    : {args.provider} (Voice: {args.voice or (config.EDGE_TTS_VOICE if args.draft else config.TTS_VOICE)})")
     print(f"🤖 Gemini Model    : {config.GEMINI_MODEL}")
@@ -94,12 +129,13 @@ def main():
     try:
         from agents.graph import run_pipeline
         run_pipeline(
-            pptx_path=pptx_path,
+            pptx_path=input_path,
             auto_mode=args.auto,
             reset_mode=args.reset,
             provider=args.provider,
             voice=args.voice,
-            draft_mode=args.draft
+            draft_mode=args.draft,
+            pages=args.pages
         )
     except ImportError:
         print("[*] Pipeline graph đang được cấu hình...")

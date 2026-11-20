@@ -441,14 +441,15 @@
         <div class="card">
             <div class="card-title">1. Chọn Slide Bài Giảng</div>
             <div class="dropzone" id="dropzone">
-                <div class="dropzone-label">Bấm để chọn file hoặc Kéo & Thả file .pptx vào đây</div>
-                <div class="dropzone-sub">Chỉ hỗ trợ file PowerPoint (.pptx), dung lượng tối đa 100MB</div>
+                <div class="dropzone-label">Bấm để chọn file hoặc Kéo & Thả file .pptx, .pdf vào đây</div>
+                <div class="dropzone-sub">Hỗ trợ file PowerPoint (.pptx) và PDF (.pdf), dung lượng tối đa 100MB</div>
             </div>
-            <input type="file" id="file-input" accept=".pptx">
+            <input type="file" id="file-input" accept=".pptx,.pdf">
 
             <div id="file-badge" class="file-info-badge" style="display: none;">
                 <div>
                     <strong>File:</strong> <span id="file-name-text"></span>
+                    <span id="file-type-tag" style="margin-left: 8px; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #e0f2fe; color: #0369a1; font-weight: 600;">Input: PPTX</span>
                 </div>
                 <div>
                     <span class="slide-count-tag" id="slide-count-text">0 slide</span>
@@ -650,8 +651,12 @@
 
         // Xử lý Upload file qua /api/upload
         async function handleFileUpload(file) {
-            if (!file.name.toLowerCase().endsWith('.pptx')) {
-                alert('Vui lòng chỉ chọn file PowerPoint (.pptx)!');
+            const lowerName = file.name.toLowerCase();
+            const isPptx = lowerName.endsWith('.pptx');
+            const isPdf = lowerName.endsWith('.pdf');
+
+            if (!isPptx && !isPdf) {
+                alert('Vui lòng chỉ chọn file PowerPoint (.pptx) hoặc PDF (.pdf)!');
                 return;
             }
 
@@ -660,7 +665,7 @@
                 return;
             }
 
-            dropzone.querySelector('.dropzone-label').textContent = 'Đang tải lên và đếm slide...';
+            dropzone.querySelector('.dropzone-label').textContent = isPdf ? 'Đang tải lên và đếm trang PDF...' : 'Đang tải lên và đếm slide...';
 
             const formData = new FormData();
             formData.append('file', file);
@@ -678,15 +683,24 @@
 
                 selectedFilename = data.filename;
                 fileNameText.textContent = data.filename;
-                slideCountText.textContent = `${data.slides} slide`;
+                const unit = data.is_pdf ? 'trang' : 'slide';
+                slideCountText.textContent = `${data.slides} ${unit}`;
+
+                const typeTag = document.getElementById('file-type-tag');
+                if (typeTag) {
+                    typeTag.textContent = data.is_pdf ? 'Input: PDF' : 'Input: PPTX';
+                    typeTag.style.background = data.is_pdf ? '#fef3c7' : '#e0f2fe';
+                    typeTag.style.color = data.is_pdf ? '#b45309' : '#0369a1';
+                }
+
                 fileBadge.style.display = 'flex';
                 btnRun.disabled = false;
                 btnRun.textContent = 'Chạy';
 
-                dropzone.querySelector('.dropzone-label').textContent = 'Đã chọn file: ' + data.filename;
+                dropzone.querySelector('.dropzone-label').textContent = 'Đã chọn file: ' + data.filename + ' (' + (data.is_pdf ? 'PDF' : 'PowerPoint') + ')';
             } catch (err) {
                 alert('Tải file thất bại: ' + err.message);
-                dropzone.querySelector('.dropzone-label').textContent = 'Bấm để chọn file hoặc Kéo & Thả file .pptx vào đây';
+                dropzone.querySelector('.dropzone-label').textContent = 'Bấm để chọn file hoặc Kéo & Thả file .pptx, .pdf vào đây';
             }
         }
 

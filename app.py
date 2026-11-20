@@ -55,6 +55,19 @@ def count_slides_in_pptx(pptx_path: Path) -> int:
         return 0
 
 
+def count_pages_in_pdf(pdf_path: Path) -> int:
+    """Đếm số trang trong file PDF bằng PyMuPDF mà không cần chạy pipeline."""
+    try:
+        import fitz
+        doc = fitz.open(str(pdf_path.resolve()))
+        cnt = len(doc)
+        doc.close()
+        return cnt
+    except Exception as e:
+        print(f"[!] Lỗi khi đếm trang PDF trong {pdf_path.name}: {e}")
+        return 0
+
+
 class JobLogCapture:
     """Bộ thu thập stdout dòng-theo-dòng realtime và cập nhật trạng thái các node pipeline."""
     def __init__(self, job_id: str, jobs_dict: dict, original_stdout):
@@ -297,7 +310,7 @@ def index():
 
 @app.route('/api/upload', methods=['POST'])
 def api_upload():
-    """Nhận file .pptx, lưu vào input/, đếm số slide và trả về {filename, slides}."""
+    """Nhận file .pptx hoặc .pdf, lưu vào input/, đếm số slide/trang và trả về {filename, slides, is_pdf, type}."""
     if 'file' not in request.files:
         return jsonify({"error": "Không tìm thấy file tải lên"}), 400
 
@@ -305,22 +318,31 @@ def api_upload():
     if not file or not file.filename:
         return jsonify({"error": "Chưa chọn file"}), 400
 
-    if not file.filename.lower().endswith('.pptx'):
-        return jsonify({"error": "Chỉ chấp nhận file định dạng PowerPoint (.pptx)"}), 400
+    lower_name = file.filename.lower()
+    if not (lower_name.endswith('.pptx') or lower_name.endswith('.pdf')):
+        return jsonify({"error": "Chỉ chấp nhận file định dạng PowerPoint (.pptx) và PDF (.pdf)"}), 400
 
+    ext = Path(file.filename).suffix.lower()
     filename = secure_filename(file.filename)
     if not filename:
-        filename = f"presentation_{int(time.time())}.pptx"
+        filename = f"document_{int(time.time())}{ext}"
 
     config.INPUT_DIR.mkdir(parents=True, exist_ok=True)
     dest_path = config.INPUT_DIR / filename
     file.save(str(dest_path))
 
-    slides_count = count_slides_in_pptx(dest_path)
+    is_pdf = ext == '.pdf'
+    if is_pdf:
+        items_count = count_pages_in_pdf(dest_path)
+    else:
+        items_count = count_slides_in_pptx(dest_path)
+
     return jsonify({
         "success": True,
         "filename": filename,
-        "slides": slides_count
+        "slides": items_count,
+        "is_pdf": is_pdf,
+        "type": "PDF" if is_pdf else "PPTX"
     })
 
 
