@@ -238,19 +238,19 @@ async def _synthesize_edge_tts_async(text: str, voice_code: str, output_wav: Pat
     actual_voice = voice_code if "Neural" in voice_code else config.EDGE_TTS_VOICE
 
     tmp_mp3 = output_wav.with_suffix(".tmp.mp3")
-    rates = [config.TTS_RATE, "-5%", "+0%", None]
+    rates = [config.TTS_RATE, None]
     
     success = False
     for r in rates:
         try:
             kw = {"rate": r} if r else {}
             comm = edge_tts.Communicate(text=cleaned, voice=actual_voice, **kw)
-            await asyncio.wait_for(comm.save(str(tmp_mp3.resolve())), timeout=25.0)
+            await asyncio.wait_for(comm.save(str(tmp_mp3.resolve())), timeout=6.0)
             if tmp_mp3.exists() and tmp_mp3.stat().st_size > 512:
                 success = True
                 break
         except Exception:
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.2)
 
     if not success or not tmp_mp3.exists():
         raise RuntimeError(f"Edge-TTS Azure không thể tổng hợp giọng đọc cho đoạn: '{text[:30]}...'")

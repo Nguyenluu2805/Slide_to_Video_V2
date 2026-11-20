@@ -45,7 +45,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # 2. Cấu hình Voice / TTS
-# TTS_PROVIDER: "zerotts" (chính) | "edge-tts" (dự phòng) | "gemini-tts" (dự phòng 2)
+# TTS_PROVIDER: "zerotts" (chính) | "edge-tts" (dự phòng) | "gtts" (cứu hộ)
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "zerotts").lower()
 TTS_VOICE = os.getenv("TTS_VOICE", "zerotts:maichi")
 ZEROTTS_MODEL = os.getenv("ZEROTTS_MODEL", "zeroweight-ai/ZeroTTS")
@@ -53,6 +53,112 @@ ZEROTTS_VOICE = os.getenv("ZEROTTS_VOICE", "maichi")
 EDGE_TTS_VOICE = os.getenv("EDGE_TTS_VOICE", "vi-VN-NamMinhNeural")
 TTS_RATE = os.getenv("TTS_RATE", "-10%")
 TTS_VOLUME = os.getenv("TTS_VOLUME", "+0%")
+
+# Danh mục đầy đủ tất cả các giọng đọc khả dụng trong hệ thống
+AVAILABLE_VOICES = [
+    # Nhóm 1: ZeroTTS - Local ONNX GPU Studio (Offline, chất lượng cao, không phụ thuộc mạng)
+    {
+        "id": "zerotts:maichi",
+        "name": "Mai Chi (ZeroTTS)",
+        "gender": "Nữ",
+        "provider": "zerotts",
+        "desc": "Giảng viên / MC, truyền cảm (Mặc định)",
+        "badge": "Studio GPU",
+        "default": True
+    },
+    {
+        "id": "zerotts:quangminh",
+        "name": "Quang Minh (ZeroTTS)",
+        "gender": "Nam",
+        "provider": "zerotts",
+        "desc": "Trầm ấm, uy tín, phóng sự & công nghệ",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:giahuy",
+        "name": "Gia Huy (ZeroTTS)",
+        "gender": "Nam",
+        "provider": "zerotts",
+        "desc": "Ấm áp, tự nhiên, thuyết minh",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:baotrang",
+        "name": "Bảo Trang (ZeroTTS)",
+        "gender": "Nữ",
+        "provider": "zerotts",
+        "desc": "Truyền cảm, rõ ràng, phong cách sư phạm",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:huuduc",
+        "name": "Hữu Đức (ZeroTTS)",
+        "gender": "Nam",
+        "provider": "zerotts",
+        "desc": "Chững chạc, trang trọng, hội thảo",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:hamy",
+        "name": "Hà My (ZeroTTS)",
+        "gender": "Nữ",
+        "provider": "zerotts",
+        "desc": "Trong trẻo, tươi sáng, trẻ trung",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:tiendat",
+        "name": "Tiến Đạt (ZeroTTS)",
+        "gender": "Nam",
+        "provider": "zerotts",
+        "desc": "Năng động, hiện đại, dứt khoát",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    {
+        "id": "zerotts:kimoanh",
+        "name": "Kim Oanh (ZeroTTS)",
+        "gender": "Nữ",
+        "provider": "zerotts",
+        "desc": "Nhẹ nhàng, thanh lịch, trang nhã",
+        "badge": "Studio GPU",
+        "default": False
+    },
+    # Nhóm 2: Microsoft Edge-TTS Neural Cloud (Nhanh, cần kết nối mạng)
+    {
+        "id": "vi-VN-NamMinhNeural",
+        "name": "Nam Minh (Edge-TTS)",
+        "gender": "Nam",
+        "provider": "edge-tts",
+        "desc": "Microsoft Azure Neural, chuẩn miền Bắc",
+        "badge": "Cloud Fast",
+        "default": False
+    },
+    {
+        "id": "vi-VN-HoaiMyNeural",
+        "name": "Hoài My (Edge-TTS)",
+        "gender": "Nữ",
+        "provider": "edge-tts",
+        "desc": "Microsoft Azure Neural, chuẩn miền Bắc",
+        "badge": "Cloud Fast",
+        "default": False
+    },
+    # Nhóm 3: Cứu hộ dự phòng
+    {
+        "id": "gtts:vi",
+        "name": "Google Dịch (gTTS)",
+        "gender": "Nữ",
+        "provider": "gtts",
+        "desc": "Google Translate TTS cứu hộ khẩn cấp",
+        "badge": "Dự phòng",
+        "default": False
+    }
+]
 
 # 3. Cấu hình Whisper (Phụ đề .srt)
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "base")

@@ -1,1357 +1,842 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Lecture Video Studio | Biến PPTX thành Video Bài Giảng</title>
-    <!-- Brand Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: {
-                        dark: {
-                            950: '#07090e',
-                            900: '#0d111a',
-                            850: '#121824',
-                            800: '#1b2333',
-                            700: '#2a364f',
-                        },
-                        brand: {
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                        }
-                    }
-                }
+    <title>AI Video Agent V2 — Web Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-page: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --error: #dc2626;
+            --error-bg: #fee2e2;
+            --info: #0284c7;
+            --info-bg: #e0f2fe;
+            --radius: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--text-sub);
+        }
+
+        .hw-tag {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 12px;
+            background-color: var(--info-bg);
+            color: var(--info);
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 999px;
+            border: 1px solid #bae6fd;
+        }
+
+        /* Card Section */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Khối 1: Input Upload */
+        .dropzone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 28px 16px;
+            text-align: center;
+            background-color: #f1f5f9;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+
+        .dropzone-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .dropzone-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-info-badge {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .file-info-badge strong {
+            color: var(--text-main);
+        }
+
+        .slide-count-tag {
+            background-color: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #334155;
+            font-size: 12px;
+        }
+
+        /* Khối 2: Tùy chọn */
+        .option-group {
+            margin-bottom: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            margin-top: 3px;
+            width: 17px;
+            height: 17px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .option-note {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 27px;
+            margin-top: 2px;
+        }
+
+        .select-group {
+            margin-top: 16px;
+            margin-bottom: 20px;
+        }
+
+        .select-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .select-control {
+            width: 100%;
+            max-width: 380px;
+            padding: 9px 12px;
+            font-family: inherit;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #ffffff;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        .select-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Nút Chạy */
+        .btn-run {
+            display: inline-block;
+            width: 100%;
+            padding: 13px 20px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            color: #ffffff;
+            background-color: var(--primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-run:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-run:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Khối 3: Tiến độ */
+        .progress-container {
+            margin-bottom: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text-sub);
+        }
+
+        .progress-bar-bg {
+            height: 10px;
+            background-color: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        /* 6 Bước Pipeline */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        @media (min-width: 680px) {
+            .steps-grid {
+                grid-template-columns: repeat(6, 1fr);
             }
         }
-    </script>
-    <style>
-        body { background-color: #07090e; color: #f1f5f9; }
-        .glass-panel {
-            background: rgba(13, 17, 26, 0.82);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .glow-primary {
-            box-shadow: 0 0 25px -4px rgba(14, 165, 233, 0.35);
-        }
-        .glow-accent {
-            box-shadow: 0 0 25px -4px rgba(99, 102, 241, 0.3);
-        }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0d111a; }
-        ::-webkit-scrollbar-thumb { background: #2a364f; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #3b4d70; }
 
-        /* Toast animation */
-        @keyframes toastSlideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .step-box {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
         }
-        @keyframes toastSlideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+
+        .step-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 4px;
         }
-        .toast-enter { animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .toast-exit { animation: toastSlideOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        .step-status {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .status-waiting {
+            background-color: #f1f5f9;
+            color: var(--text-muted);
+        }
+
+        .status-running {
+            background-color: var(--info-bg);
+            color: var(--info);
+        }
+
+        .status-done {
+            background-color: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-error {
+            background-color: var(--error-bg);
+            color: var(--error);
+        }
+
+        /* Log console */
+        .log-box {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 12px;
+            padding: 12px 14px;
+            border-radius: 6px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+
+        /* Khối Output thành phẩm */
+        .output-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        .video-container {
+            margin-bottom: 14px;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            max-width: 720px;
+            border-radius: 8px;
+            background-color: #000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .download-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .btn-download {
+            flex: 1 1 180px;
+            display: inline-block;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            color: #ffffff;
+            background-color: #059669;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-download:hover {
+            background-color: #047857;
+        }
+
+        .btn-download.secondary {
+            background-color: #475569;
+        }
+
+        .btn-download.secondary:hover {
+            background-color: #334155;
+        }
+
+        /* Lỗi & Nút Chạy Lại */
+        .error-banner {
+            padding: 12px 16px;
+            background-color: var(--error-bg);
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            color: var(--error);
+            font-size: 13px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-retry {
+            display: inline-block;
+            align-self: flex-start;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: var(--error);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-retry:hover {
+            background-color: #b91c1c;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans antialiased text-slate-100 selection:bg-sky-500 selection:text-white">
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>AI Video Agent V2 — Studio</h1>
+            <p>Chuyển đổi bài giảng PowerPoint (.pptx) thành Video thuyết trình 1080p với giọng đọc và phụ đề tiếng Việt chuyên nghiệp.</p>
+            <div class="hw-tag">Thiết bị: {{ hardware_info }}</div>
+        </header>
 
-    <!-- ========================================== -->
-    <!-- CUSTOM SVG ICON SPRITE DEFINITIONS         -->
-    <!-- Monoline 1.75px Stroke System (24x24)      -->
-    <!-- ========================================== -->
-    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-        <!-- 1. Studio Logo -->
-        <symbol id="icon-studio-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="13" rx="2.5" />
-            <path d="M10 8.5l5 3-5 3v-6z" fill="currentColor" stroke="none" />
-            <path d="M8 21h8m-4-4v4" />
-        </symbol>
+        <!-- Khối 1: Input -->
+        <div class="card">
+            <div class="card-title">1. Chọn Slide Bài Giảng</div>
+            <div class="dropzone" id="dropzone">
+                <div class="dropzone-label">Bấm để chọn file hoặc Kéo & Thả file .pptx vào đây</div>
+                <div class="dropzone-sub">Chỉ hỗ trợ file PowerPoint (.pptx), dung lượng tối đa 100MB</div>
+            </div>
+            <input type="file" id="file-input" accept=".pptx">
 
-        <!-- 2. Presentation Slide Deck -->
-        <symbol id="icon-slide-deck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="13" rx="2" />
-            <path d="M7 8h10M7 11h6" />
-            <path d="M9 20h6m-3-3v3" />
-        </symbol>
-
-        <!-- 3. Voice Neural Microphone -->
-        <symbol id="icon-voice-wave" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="3" width="6" height="10" rx="3" />
-            <path d="M5 10a7 7 0 0014 0" />
-            <path d="M12 17v4m-3 0h6" />
-        </symbol>
-
-        <!-- 4. Speech Cadence / Speed Meter -->
-        <symbol id="icon-speech-meter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4.5 16.5A8 8 0 1119.5 16.5" />
-            <path d="M12 12l3.5-3.5" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-        </symbol>
-
-        <!-- 5. Slide Transition & Pause -->
-        <symbol id="icon-slide-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="14" rx="2" />
-            <path d="M10 9v4m4-4v4" />
-            <path d="M3 18h18" opacity="0.3" />
-        </symbol>
-
-        <!-- 6. Settings / Tuning Sliders -->
-        <symbol id="icon-settings-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 6h9m4 0h3M13 4v4M4 12h3m4 0h9M7 10v4M4 18h11m4 0h1M15 16v4" />
-        </symbol>
-
-        <!-- 7. Magic 1-Click Wand -->
-        <symbol id="icon-wand-magic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 9l5.5-5.5M15 9l-9 9a2.12 2.12 0 01-3-3l9-9m3 3l-3-3" />
-            <path d="M11.5 3.5l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5.5-1.5zM6 8l.3 1 1 .3-1 .3-.3 1-.3-1-1-.3 1-.3.3-1z" />
-        </symbol>
-
-        <!-- 8. Script Editor -->
-        <symbol id="icon-script-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z" />
-            <path d="M14 3v6h6" />
-            <path d="M8 13h8M8 17h5" />
-        </symbol>
-
-        <!-- 9. Video Display Screen -->
-        <symbol id="icon-video-screen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="13" rx="2.5" />
-            <path d="M10 8.5l5 3-5 3v-6z" fill="currentColor" stroke="none" />
-            <path d="M8 20h8m-4-3v3" />
-        </symbol>
-
-        <!-- 10. Pipeline Step 1: Extract Slides -->
-        <symbol id="icon-step-extract" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3L2 8l10 5 10-5-10-5z" />
-            <path d="M2 12l10 5 10-5" />
-            <path d="M2 16l10 5 10-5" />
-        </symbol>
-
-        <!-- 11. Pipeline Step 2: AI Script Gen -->
-        <symbol id="icon-step-script" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5" y="5" width="14" height="14" rx="2.5" />
-            <path d="M9 9h6M9 12h6M9 15h4" />
-            <path d="M1 9h4M1 15h4M19 9h4M19 15h4M9 1v4M15 1v4M9 19v4M15 19v4" />
-        </symbol>
-
-        <!-- 12. Pipeline Step 3: Neural TTS Audio -->
-        <symbol id="icon-step-tts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12h2M7 8v8M10 5v14M13 3v18M16 7v10M19 9v6M21 12h2" />
-        </symbol>
-
-        <!-- 13. Pipeline Step 4: Voice Cloning / Optimization -->
-        <symbol id="icon-step-clone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 14a8 8 0 0116 0" />
-            <path d="M7 14a5 5 0 0110 0" />
-            <path d="M10 14a2 2 0 014 0" />
-            <path d="M12 14v6m-4 0h8" />
-        </symbol>
-
-        <!-- 14. Pipeline Step 5: Render 1080p MP4 -->
-        <symbol id="icon-step-render" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="5" width="18" height="14" rx="2.5" />
-            <path d="M7 5v14M17 5v14M3 9.5h4M17 9.5h4M3 14.5h4M17 14.5h4" />
-        </symbol>
-
-        <!-- 15. Console Terminal -->
-        <symbol id="icon-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="2" />
-            <path d="M7 9l3 3-3 3M13 15h4" />
-        </symbol>
-
-        <!-- 16. Download Video File -->
-        <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 4v12m0 0l-4-4m4 4l4-4" />
-            <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
-        </symbol>
-
-        <!-- 17. Refresh Action -->
-        <symbol id="icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 4v5h5M20 20v-5h-5M4.93 15a8 8 0 0013.14 2.14L20 15M19.07 9A8 8 0 005.93 6.86L4 9" />
-        </symbol>
-
-        <!-- 18. Status Checkmark (Success) -->
-        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6L9 17l-5-5" />
-        </symbol>
-
-        <!-- 19. Status Alert (Warning) -->
-        <symbol id="icon-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-        </symbol>
-
-        <!-- 20. Status Error (Circle Cross) -->
-        <symbol id="icon-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M15 9l-6 6M9 9l6 6" />
-        </symbol>
-
-        <!-- 21. Status Info (Circle Info) -->
-        <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 11v5m0-8h.01" />
-        </symbol>
-
-        <!-- 22. Close / Dismiss -->
-        <symbol id="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 18L18 6M6 6l12 12" />
-        </symbol>
-
-        <!-- 23. Chevron Down -->
-        <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 9l-7 7-7-7" />
-        </symbol>
-
-        <!-- 24. Eye (Visible) -->
-        <symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-        </symbol>
-
-        <!-- 25. Eye Off (Hidden) -->
-        <symbol id="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22" />
-        </symbol>
-    </svg>
-
-    <!-- Toast Notification Container (Floating Top-Right) -->
-    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none"></div>
-
-    <!-- Header Navigation -->
-    <header class="border-b border-slate-800/80 bg-dark-950/90 backdrop-blur-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3.5">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white">
-                    <svg class="w-5 h-5"><use href="#icon-studio-logo"></use></svg>
+            <div id="file-badge" class="file-info-badge" style="display: none;">
+                <div>
+                    <strong>File:</strong> <span id="file-name-text"></span>
                 </div>
                 <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="text-base font-extrabold bg-gradient-to-r from-white via-slate-100 to-sky-400 bg-clip-text text-transparent">AI Video Agent Studio</h1>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">v2.0 PRO</span>
-                    </div>
-                    <p class="text-xs text-slate-400">Tự Động Hóa Sản Xuất Video Bài Giảng Từ Slide PowerPoint</p>
+                    <span class="slide-count-tag" id="slide-count-text">0 slide</span>
                 </div>
-            </div>
-
-            <!-- Clean Minimal Status Indicator -->
-            <div class="flex items-center space-x-3">
-                <div class="hidden sm:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-dark-900/80 border border-slate-800/80 text-xs">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-xs font-medium text-slate-300">Hệ Thống Sẵn Sàng</span>
-                </div>
-                <button onclick="location.reload()" class="p-2 rounded-xl bg-dark-900 hover:bg-dark-800 border border-slate-800 text-slate-400 hover:text-white transition-colors" title="Làm mới giao diện">
-                    <svg class="w-4 h-4"><use href="#icon-refresh"></use></svg>
-                </button>
             </div>
         </div>
-    </header>
 
-    <!-- Main Content Layout -->
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Khối 2: Tùy chọn -->
+        <div class="card">
+            <div class="card-title">2. Tùy Chọn Xuất Bản</div>
             
-            <!-- LEFT COLUMN: Controls & Setup (5 cols) -->
-            <div class="lg:col-span-5 space-y-5">
-                
-                <!-- CARD 1: Upload Presentation -->
-                <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2.5">
-                            <span class="w-6 h-6 rounded-lg bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-xs font-bold text-sky-400">1</span>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Slide Bài Giảng (.pptx)</h2>
-                        </div>
-                        <span id="file-status-tag" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                            Chưa chọn file
-                        </span>
-                    </div>
-
-                    <!-- Dropzone -->
-                    <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-sky-500 rounded-xl p-5 text-center cursor-pointer transition-all bg-dark-900/60 hover:bg-sky-500/5 group">
-                        <input type="file" id="file-input" accept=".pptx" class="hidden">
-                        <div class="w-12 h-12 mx-auto rounded-xl bg-dark-800 group-hover:bg-sky-500/20 flex items-center justify-center transition-colors mb-2.5 border border-slate-700 group-hover:border-sky-500/40 text-slate-400 group-hover:text-sky-400">
-                            <svg class="w-6 h-6"><use href="#icon-slide-deck"></use></svg>
-                        </div>
-                        <p class="text-xs font-semibold text-slate-200" id="file-name-display">Kéo thả file .pptx vào đây hoặc <span class="text-sky-400 underline">tải lên</span></p>
-                        <p class="text-[11px] text-slate-400 mt-1" id="file-info-display">Hỗ trợ Microsoft PowerPoint 2016 / 2019 / 2021 / Office 365</p>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-1 text-xs">
-                        <span class="text-slate-400 text-[11px]">Chưa có file bài giảng?</span>
-                        <button id="btn-use-sample" class="text-sky-400 hover:text-sky-300 font-semibold text-[11px] flex items-center space-x-1.5 hover:underline">
-                            <span>Dùng Slide mẫu demo_lecture.pptx</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- CARD 2: Voice & AI Studio Settings (Collapsible) -->
-                <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-4">
-                    <!-- Header with Clickable Toggle & Live Selection Pill -->
-                    <div class="flex items-center justify-between cursor-pointer select-none group" onclick="toggleVoiceSettingsAccordion()" title="Nhấn để thu nhỏ / mở rộng">
-                        <div class="flex items-center space-x-2.5">
-                            <span class="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-400">2</span>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider group-hover:text-sky-400 transition-colors">Giọng Đọc & Lời Giảng</h2>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span id="voice-summary-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                                Mai Chi • -10%
-                            </span>
-                            <span class="p-1 rounded-lg text-slate-400 group-hover:text-white transition-colors">
-                                <svg id="voice-settings-chevron" class="w-4 h-4 text-slate-400 transition-transform duration-300 transform rotate-180">
-                                    <use href="#icon-chevron-down"></use>
-                                </svg>
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Collapsible Voice Settings Drawer -->
-                    <div id="voice-settings-drawer" class="space-y-4 transition-all">
-
-                    <!-- Voice Dropdown (Clean, Professional Typography) -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center space-x-1.5">
-                                <svg class="w-3.5 h-3.5 text-sky-400"><use href="#icon-voice-wave"></use></svg>
-                                <span>Lựa chọn Giọng đọc bài giảng (TTS)</span>
-                            </span>
-                            <span class="text-[10px] text-slate-400 font-normal">Đa ngôn ngữ & Sư phạm</span>
-                        </label>
-                        <div class="relative">
-                            <select id="voice-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
-                                <optgroup label="Giọng Đọc Sư Phạm (Khuyên Dùng)" class="bg-dark-900 text-sky-400 font-semibold">
-                                    <option value="zerotts:maichi" selected class="text-white font-normal">Mai Chi (Nữ - Dịu dàng, truyền cảm)</option>
-                                    <option value="zerotts:giahuy" class="text-white font-normal">Gia Huy (Nam - Trầm ấm, tâm tình)</option>
-                                    <option value="zerotts:baotrang" class="text-white font-normal">Bảo Trang (Nữ - Trưởng thành, rõ ràng)</option>
-                                    <option value="zerotts:quangminh" class="text-white font-normal">Quang Minh (Nam - Dứt khoát, tin tức)</option>
-                                    <option value="zerotts:kimoanh" class="text-white font-normal">Kim Oanh (Nữ - Truyền cảm, ấm áp)</option>
-                                    <option value="zerotts:huuduc" class="text-white font-normal">Hữu Đức (Nam - Điềm đạm, trầm)</option>
-                                    <option value="zerotts:hamy" class="text-white font-normal">Hà My (Nữ - Ngọt ngào, nhẹ nhàng)</option>
-                                    <option value="zerotts:tiendat" class="text-white font-normal">Tiến Đạt (Nam - Sôi nổi, dõng dạc)</option>
-                                </optgroup>
-                                <optgroup label="Giọng Đọc Tiêu Chuẩn" class="bg-dark-900 text-slate-400 font-semibold">
-                                    <option value="vi-VN-NamMinhNeural" class="text-white font-normal">Nam Minh (Nam - Giảng bài dõng dạc)</option>
-                                    <option value="vi-VN-HoaiMyNeural" class="text-white font-normal">Hoài My (Nữ - Truyền cảm, rõ ràng)</option>
-                                </optgroup>
-                                <optgroup label="Giọng Đọc Bổ Sung" class="bg-dark-900 text-purple-400 font-semibold">
-                                    <option value="voice-9c25f795-6ed9-4fd4" class="text-emerald-400 font-medium">Giọng Clone Cá Nhân (Nguyên) - Studio</option>
-                                    <option value="vi_male_lehoang_mb" class="text-white font-normal">Lê Hoàng (Nam - Miền Bắc)</option>
-                                    <option value="vi_male_minhtriet_mb" class="text-white font-normal">Minh Triết (Nam - Miền Bắc)</option>
-                                    <option value="vi_female_thuytrang_mb" class="text-white font-normal">Thùy Trang (Nữ - Miền Bắc)</option>
-                                    <option value="vi_female_kieunhi_mn" class="text-white font-normal">Kiều Nhi (Nữ - Miền Nam)</option>
-                                </optgroup>
-                            </select>
-                            <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Speech Cadence & Pacing -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center space-x-1.5">
-                                <svg class="w-3.5 h-3.5 text-sky-400"><use href="#icon-speech-meter"></use></svg>
-                                <span>Tốc độ đọc & Nhịp điệu giảng bài</span>
-                            </span>
-                            <span class="text-[10px] text-sky-400 font-semibold">Nhấn nhá & Ngắt nghỉ</span>
-                        </label>
-                        <div class="relative">
-                            <select id="rate-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
-                                <option value="-10%" selected>Chuẩn Giảng Viên Sư Phạm (-10% • Nhấn nhá, truyền cảm)</option>
-                                <option value="-15%">Chậm rãi, thư thái (-15% • Dễ tiếp thu kiến thức)</option>
-                                <option value="-5%">Tự nhiên, linh hoạt (-5% • Năng động, cuốn hút)</option>
-                                <option value="+0%">Tốc độ tiêu chuẩn (0% • Nhanh gọn)</option>
-                            </select>
-                            <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Slide Pause Duration -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                            <span class="flex items-center space-x-1.5">
-                                <svg class="w-3.5 h-3.5 text-amber-400"><use href="#icon-slide-pause"></use></svg>
-                                <span>Thời gian dừng chuyển giữa các Slide</span>
-                            </span>
-                            <span class="text-[10px] text-amber-400 font-semibold">Nghỉ ngơi sư phạm</span>
-                        </label>
-                        <div class="relative">
-                            <select id="slide-pause-select" class="w-full bg-dark-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-sky-500 appearance-none font-medium">
-                                <option value="2.3" selected>Nghỉ tiêu chuẩn 2.3s (0.8s đầu slide + 1.5s cuối slide)</option>
-                                <option value="3.0">Nghỉ thư thái 3.0s (1.0s đầu slide + 2.0s cuối slide)</option>
-                                <option value="1.5">Nghỉ nhanh 1.5s (0.5s đầu slide + 1.0s cuối slide)</option>
-                                <option value="4.0">Nghỉ chậm 4.0s (1.5s đầu slide + 2.5s cuối slide)</option>
-                            </select>
-                            <div class="absolute right-3.5 top-3 pointer-events-none text-slate-400">
-                                <svg class="w-4 h-4"><use href="#icon-chevron-down"></use></svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ACCORDION: Tùy Chọn Nâng Cao & Clone Giọng (ẨN MẶC ĐỊNH) -->
-                    <div class="rounded-xl border border-slate-800 bg-dark-900/60 overflow-hidden transition-all">
-                        <button type="button" onclick="toggleAdvancedAccordion()" class="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-800/60 transition-colors text-left select-none">
-                            <div class="flex items-center space-x-2.5">
-                                <svg class="w-4 h-4 text-slate-400"><use href="#icon-settings-gear"></use></svg>
-                                <span class="text-xs font-semibold text-slate-300">Tùy chọn nâng cao & Mẫu giọng riêng</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span id="advanced-status-badge" class="text-[10px] text-slate-500">Mặc định thu gọn</span>
-                                <svg id="advanced-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-300"><use href="#icon-chevron-down"></use></svg>
-                            </div>
-                        </button>
-
-                        <!-- Drawer Content (Hidden by default) -->
-                        <div id="advanced-drawer" class="hidden px-4 pb-4 pt-2 border-t border-slate-800 space-y-3.5">
-                            
-                            <!-- Gemini API Key -->
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-300 mb-1">
-                                    Google Gemini API Key (Viết kịch bản sư phạm)
-                                </label>
-                                <div class="relative">
-                                    <input type="password" id="gemini-api-key" placeholder="AIzaSy... (Để trống nếu dùng kịch bản có sẵn)" 
-                                           class="w-full bg-dark-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500">
-                                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-2 text-slate-400 hover:text-slate-200" title="Ẩn/Hiện khóa">
-                                        <svg id="eye-icon" class="w-4 h-4"><use href="#icon-eye"></use></svg>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Voice Sample Upload (RVC) -->
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-300 mb-1">
-                                    Video / Audio Mẫu Giọng Thật (.mp4, .mov, .mp3, .wav)
-                                </label>
-                                <div id="voice-drop-zone" class="border border-dashed border-slate-700 hover:border-indigo-500 rounded-lg p-3 text-center cursor-pointer transition-all bg-dark-950/60 hover:bg-indigo-500/5 group">
-                                    <input type="file" id="voice-file-input" accept="video/*,audio/*,.mp4,.mov,.mp3,.wav,.m4a" class="hidden">
-                                    <div class="w-8 h-8 mx-auto rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 mb-1">
-                                        <svg class="w-4 h-4"><use href="#icon-voice-wave"></use></svg>
-                                    </div>
-                                    <p class="text-[11px] font-medium text-slate-200" id="voice-file-display">Kéo thả Video hoặc File Ghi Âm vào đây</p>
-                                    <p class="text-[10px] text-slate-400">Tự động trích xuất file mẫu để RVC GPU học giọng</p>
-                                </div>
-                            </div>
-
-                            <!-- RVC Switch -->
-                            <div class="flex items-center justify-between pt-1">
-                                <div>
-                                    <span class="text-xs font-medium text-white block">Nhái giọng mẫu giảng viên (Voice Cloning)</span>
-                                    <span class="text-[10px] text-slate-400">Nhái âm sắc sang giọng thật của bạn</span>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="rvc-toggle" class="sr-only peer">
-                                    <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
-                                </label>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    </div> <!-- End #voice-settings-drawer -->
-
-                    <!-- Action Buttons (Always Accessible) -->
-                    <div class="space-y-2.5 pt-2 border-t border-slate-800/70">
-                        <button id="btn-quick-generate" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-600 to-purple-600 hover:from-sky-400 hover:via-indigo-500 hover:to-purple-500 text-white font-bold text-xs uppercase tracking-wider shadow-lg glow-primary flex items-center justify-center transition-all hover:scale-[1.01] active:scale-[0.99] space-x-2">
-                            <svg class="w-4 h-4 text-amber-300"><use href="#icon-wand-magic"></use></svg>
-                            <span>Tạo Video Tự Động 1-Click</span>
-                        </button>
-                        
-                        <button id="btn-preview-scripts" class="w-full py-2.5 px-4 rounded-xl bg-dark-800 hover:bg-dark-700 border border-slate-700/80 text-slate-200 font-semibold text-xs flex items-center justify-center transition-all space-x-2">
-                            <svg class="w-4 h-4 text-sky-400"><use href="#icon-script-edit"></use></svg>
-                            <span>Xem & Sửa Kịch Bản Trước Khi Tạo</span>
-                        </button>
-                    </div>
-
-                </div>
-
+            <div class="option-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chk-auto" checked>
+                    <span>Chạy tự động, bỏ qua Human Review</span>
+                </label>
             </div>
 
-            <!-- RIGHT COLUMN: Output & Studio Monitor (7 cols) -->
-            <div class="lg:col-span-7 space-y-5">
-                
-                <!-- Video Output Player Frame -->
-                <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2.5">
-                            <svg class="w-5 h-5 text-sky-400"><use href="#icon-video-screen"></use></svg>
-                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Video Bài Giảng Hoàn Thiện</h2>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span id="resolution-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                                1080p Full HD
-                            </span>
-                            <a id="btn-download-video" href="#" download class="hidden px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center space-x-1.5 shadow-md">
-                                <svg class="w-3.5 h-3.5"><use href="#icon-download"></use></svg>
-                                <span>Tải Video MP4</span>
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Video Container -->
-                    <div class="relative aspect-video w-full rounded-xl bg-dark-950 border border-slate-800 overflow-hidden flex items-center justify-center shadow-inner group">
-                        
-                        <!-- Empty State Placeholder -->
-                        <div id="video-placeholder" class="text-center p-6 space-y-3">
-                            <div class="w-14 h-14 rounded-2xl bg-dark-900 border border-slate-800 flex items-center justify-center mx-auto text-slate-600">
-                                <svg class="w-7 h-7"><use href="#icon-video-screen"></use></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-semibold text-slate-300">Chưa có video được render</h3>
-                                <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Chọn file bài giảng và nhấn "Tạo Video Tự Động 1-Click" để bắt đầu quy trình AI hoàn toàn tự động.</p>
-                            </div>
-                        </div>
-
-                        <!-- Active HTML5 Video Player -->
-                        <video id="video-player" controls preload="auto" playsinline class="w-full h-full object-contain hidden bg-dark-950 rounded-lg">
-                            <source id="video-source" src="" type="video/mp4">
-                            Trình duyệt của bạn không hỗ trợ thẻ video.
-                        </video>
-
-                    </div>
-                </div>
-
-                <!-- Live Pipeline Stepper with Per-Stage Timers & Custom Step Icons -->
-                <div class="glass-panel rounded-2xl p-5 shadow-xl space-y-3.5">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <svg class="w-4 h-4 text-sky-400"><use href="#icon-step-render"></use></svg>
-                            <h2 class="text-xs font-bold text-white uppercase tracking-wider">Tiến Trình Xử Lý Pipeline</h2>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span id="pipeline-live-timer" class="hidden px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/30 flex items-center space-x-1">
-                                <svg class="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                <span id="pipeline-live-timer-text">0.0s</span>
-                            </span>
-                            <span id="pipeline-status-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                                Sẵn sàng
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-dark-950 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-800">
-                        <div id="progress-bar" class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 h-1.5 rounded-full transition-all duration-300 w-0"></div>
-                    </div>
-
-                    <!-- 5 Steps Indicators with Dedicated Custom Icons & Timers -->
-                    <div class="grid grid-cols-5 gap-2 text-center text-xs">
-                        <!-- Step 1 -->
-                        <div id="step-badge-1" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-extract"></use></svg>
-                            <div class="font-bold text-[11px]">BƯỚC 1</div>
-                            <div class="text-[10px] truncate text-slate-400">Trích xuất</div>
-                            <div id="step-time-1" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
-                        </div>
-                        <!-- Step 2 -->
-                        <div id="step-badge-2" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-script"></use></svg>
-                            <div class="font-bold text-[11px]">BƯỚC 2</div>
-                            <div class="text-[10px] truncate text-slate-400">Kịch bản AI</div>
-                            <div id="step-time-2" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
-                        </div>
-                        <!-- Step 3 -->
-                        <div id="step-badge-3" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-tts"></use></svg>
-                            <div class="font-bold text-[11px]">BƯỚC 3</div>
-                            <div class="text-[10px] truncate text-slate-400">Lồng tiếng TTS</div>
-                            <div id="step-time-3" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
-                        </div>
-                        <!-- Step 4 -->
-                        <div id="step-badge-4" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-clone"></use></svg>
-                            <div class="font-bold text-[11px]">BƯỚC 4</div>
-                            <div class="text-[10px] truncate text-slate-400">Tối ưu Âm sắc</div>
-                            <div id="step-time-4" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
-                        </div>
-                        <!-- Step 5 -->
-                        <div id="step-badge-5" class="p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 transition-all flex flex-col justify-between">
-                            <svg class="w-4 h-4 mx-auto mb-1 opacity-70"><use href="#icon-step-render"></use></svg>
-                            <div class="font-bold text-[11px]">BƯỚC 5</div>
-                            <div class="text-[10px] truncate text-slate-400">Render Video</div>
-                            <div id="step-time-5" class="text-[10px] font-mono mt-1 font-semibold text-slate-500">--</div>
-                        </div>
-                    </div>
-
-                    <!-- Bảng Chi Tiết Thời Gian Từng Giai Đoạn -->
-                    <div id="timing-summary-card" class="hidden p-3 rounded-xl bg-dark-950/90 border border-slate-800 text-xs space-y-2">
-                        <div class="flex items-center justify-between font-bold text-slate-300 pb-1.5 border-b border-slate-800/80">
-                            <span class="flex items-center space-x-1.5 text-sky-400">
-                                <svg class="w-3.5 h-3.5"><use href="#icon-speech-meter"></use></svg>
-                                <span>Thời gian xử lý từng giai đoạn</span>
-                            </span>
-                            <span id="timing-total-badge" class="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Tổng: --</span>
-                        </div>
-                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5 font-mono text-[11px]">
-                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
-                                <div class="text-slate-400 text-[10px]">1. Trích xuất Slide</div>
-                                <div id="summary-time-1" class="font-bold text-slate-300 mt-0.5">--</div>
-                            </div>
-                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
-                                <div class="text-slate-400 text-[10px]">2. Kịch bản AI</div>
-                                <div id="summary-time-2" class="font-bold text-slate-300 mt-0.5">--</div>
-                            </div>
-                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
-                                <div class="text-slate-400 text-[10px]">3. Lồng tiếng TTS</div>
-                                <div id="summary-time-3" class="font-bold text-slate-300 mt-0.5">--</div>
-                            </div>
-                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
-                                <div class="text-slate-400 text-[10px]">4. Tối ưu Âm sắc</div>
-                                <div id="summary-time-4" class="font-bold text-slate-300 mt-0.5">--</div>
-                            </div>
-                            <div class="bg-dark-900/80 p-2 rounded-lg border border-slate-800/80">
-                                <div class="text-slate-400 text-[10px]">5. Render MP4</div>
-                                <div id="summary-time-5" class="font-bold text-slate-300 mt-0.5">--</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Realtime Console Logs (Collapsible / Compact) -->
-                <div class="rounded-2xl border border-slate-800/80 bg-dark-900/60 overflow-hidden transition-all">
-                    <button type="button" onclick="toggleLogAccordion()" class="w-full px-4 py-3 flex items-center justify-between hover:bg-dark-800/60 transition-colors text-left select-none text-xs">
-                        <div class="flex items-center space-x-2.5 text-slate-400">
-                            <svg class="w-3.5 h-3.5 text-slate-500"><use href="#icon-terminal"></use></svg>
-                            <span class="font-semibold text-xs text-slate-300">Nhật Ký Hệ Thống</span>
-                            <span id="log-live-snippet" class="text-[10px] text-slate-500 font-mono truncate max-w-[200px] hidden sm:inline">> Sẵn sàng</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span id="log-toggle-text" class="text-[10px] text-slate-500">Mở rộng</span>
-                            <svg id="log-chevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-300"><use href="#icon-chevron-down"></use></svg>
-                        </div>
-                    </button>
-                    <div id="log-drawer" class="hidden p-3.5 border-t border-slate-800/80 space-y-2 bg-dark-950/60">
-                        <div class="flex items-center justify-between text-[11px] text-slate-500">
-                            <span>Chi tiết hoạt động nền:</span>
-                            <button onclick="clearLogs()" class="hover:text-slate-300 transition-colors">Xóa sạch</button>
-                        </div>
-                        <div id="log-terminal" class="h-32 bg-dark-950 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-y-auto space-y-1 border border-slate-800/80 selection:bg-slate-700">
-                            <div class="text-sky-400">> AI Video Studio v2.0 đã khởi động. Sẵn sàng nhận lệnh...</div>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="option-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chk-reset">
+                    <span>Chạy lại từ đầu, xóa checkpoint cũ</span>
+                </label>
             </div>
 
+            <div class="option-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chk-draft">
+                    <span>Chế độ nháp siêu tốc</span>
+                </label>
+                <div class="option-note">Nháp = giọng Edge-TTS NamMinh, nhanh. Tắt = giọng ZeroTTS maichi, chậm hơn.</div>
+            </div>
+
+            <div class="select-group">
+                <label class="select-label" for="sel-voice">Giọng đọc</label>
+                <select id="sel-voice" class="select-control">
+                    <optgroup label="🎙️ ZeroTTS - Studio GPU (Offline, Tự nhiên, Chất lượng cao nhất)">
+                        <option value="zerotts:maichi" selected>ZeroTTS - maichi (Nữ, Giảng viên / MC - Mặc định)</option>
+                        <option value="zerotts:quangminh">ZeroTTS - quangminh (Nam, Trầm ấm / Thời sự / Công nghệ)</option>
+                        <option value="zerotts:giahuy">ZeroTTS - giahuy (Nam, Ấm áp / Thuyết minh)</option>
+                        <option value="zerotts:baotrang">ZeroTTS - baotrang (Nữ, Sư phạm / Truyền cảm)</option>
+                        <option value="zerotts:huuduc">ZeroTTS - huuduc (Nam, Chững chạc / Uy tín)</option>
+                        <option value="zerotts:hamy">ZeroTTS - hamy (Nữ, Trong trẻo / Trẻ trung)</option>
+                        <option value="zerotts:tiendat">ZeroTTS - tiendat (Nam, Năng động / Hiện đại)</option>
+                        <option value="zerotts:kimoanh">ZeroTTS - kimoanh (Nữ, Nhẹ nhàng / Trang nhã)</option>
+                    </optgroup>
+                    <optgroup label="⚡ Microsoft Edge-TTS (Cloud Fast)">
+                        <option value="vi-VN-NamMinhNeural">Edge-TTS - NamMinh (Nam, Chuẩn miền Bắc)</option>
+                        <option value="vi-VN-HoaiMyNeural">Edge-TTS - HoaiMy (Nữ, Chuẩn miền Bắc)</option>
+                    </optgroup>
+                    <optgroup label="🌐 Cứu hộ dự phòng">
+                        <option value="gtts:vi">Google TTS - Tiếng Việt (Cứu hộ khẩn cấp)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <button type="button" id="btn-run" class="btn-run" disabled>Chạy</button>
         </div>
 
-        <!-- SCRIPT & SLIDE EDITOR SECTION (Hidden by default) -->
-        <div id="script-editor-section" class="mt-8 glass-panel rounded-2xl p-6 shadow-2xl space-y-6 hidden border border-sky-500/30">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-                        <svg class="w-5 h-5"><use href="#icon-script-edit"></use></svg>
-                    </div>
-                    <div>
-                        <h2 class="text-base font-bold text-white">Chỉnh Sửa Kịch Bản Giảng Dạy Từng Slide</h2>
-                        <p class="text-xs text-slate-400">Bạn có thể sửa trực tiếp lời giảng trước khi tạo audio và xuất video</p>
-                    </div>
+        <!-- Khối 3: Tiến độ + Output -->
+        <div class="card" id="card-progress">
+            <div class="card-title">3. Tiến Độ & Kết Quả</div>
+
+            <!-- Thanh tiến độ -->
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span id="progress-step-text">Sẵn sàng</span>
+                    <span id="progress-percent-text">0%</span>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="closeScriptEditor()" class="px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 text-xs font-semibold transition-colors">
-                        Đóng lại
-                    </button>
-                    <button id="btn-confirm-render" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-sky-500/20 flex items-center space-x-2">
-                        <svg class="w-4 h-4"><use href="#icon-wand-magic"></use></svg>
-                        <span>Xác Nhận & Render Video Ngay</span>
-                    </button>
+                <div class="progress-bar-bg">
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
                 </div>
             </div>
 
-            <!-- Slides Grid -->
-            <div id="slides-editor-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[600px] overflow-y-auto pr-2">
-                <!-- Dynamic slide cards injected here -->
+            <!-- 6 Bước Pipeline -->
+            <div class="steps-grid">
+                <div class="step-box" id="step-box-parse">
+                    <div class="step-name">1. Parse</div>
+                    <div class="step-status status-waiting" id="badge-parse">⏳ chờ</div>
+                </div>
+                <div class="step-box" id="step-box-script">
+                    <div class="step-name">2. Script</div>
+                    <div class="step-status status-waiting" id="badge-script">⏳ chờ</div>
+                </div>
+                <div class="step-box" id="step-box-voice">
+                    <div class="step-name">3. Voice</div>
+                    <div class="step-status status-waiting" id="badge-voice">⏳ chờ</div>
+                </div>
+                <div class="step-box" id="step-box-render">
+                    <div class="step-name">4. Render</div>
+                    <div class="step-status status-waiting" id="badge-render">⏳ chờ</div>
+                </div>
+                <div class="step-box" id="step-box-assemble">
+                    <div class="step-name">5. Assemble</div>
+                    <div class="step-status status-waiting" id="badge-assemble">⏳ chờ</div>
+                </div>
+                <div class="step-box" id="step-box-qa_final">
+                    <div class="step-name">6. QA</div>
+                    <div class="step-status status-waiting" id="badge-qa_final">⏳ chờ</div>
+                </div>
+            </div>
+
+            <!-- Log Console -->
+            <div class="log-box" id="log-console">Chưa có tiến trình nào được chạy...</div>
+
+            <!-- Lỗi (nếu có) -->
+            <div id="error-section" class="error-banner" style="display: none;">
+                <div id="error-message">Đã xảy ra lỗi trong quá trình xử lý.</div>
+                <button type="button" id="btn-retry" class="btn-retry">Chạy lại</button>
+            </div>
+
+            <!-- Kết quả hoàn thành -->
+            <div id="output-section" class="output-section" style="display: none;">
+                <div class="video-container">
+                    <video id="video-preview" controls></video>
+                </div>
+                <div class="download-actions">
+                    <a id="btn-dl-video" class="btn-download" href="#" download>Tải video (.mp4)</a>
+                    <a id="btn-dl-ass" class="btn-download secondary" href="#" download>Tải phụ đề (.ass)</a>
+                    <a id="btn-dl-script" class="btn-download secondary" href="#" download>Tải kịch bản (.json)</a>
+                </div>
             </div>
         </div>
+    </div>
 
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-slate-800/60 py-4 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
-            AI Video Studio • Hệ thống sản xuất video bài giảng điện tử tự động 1080p
-        </div>
-    </footer>
-
-    <!-- Client-Side App Logic & Toast Notification System -->
     <script>
-        let currentFilename = 'demo_lecture.pptx';
-        let eventSource = null;
-        let loadedSlides = [];
+        let selectedFilename = "";
+        let currentJobId = null;
+        let pollTimer = null;
 
-        // DOM References
-        const dropZone = document.getElementById('drop-zone');
+        const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('file-input');
-        const fileNameDisplay = document.getElementById('file-name-display');
-        const fileInfoDisplay = document.getElementById('file-info-display');
-        const fileStatusTag = document.getElementById('file-status-tag');
-        const btnUseSample = document.getElementById('btn-use-sample');
+        const fileBadge = document.getElementById('file-badge');
+        const fileNameText = document.getElementById('file-name-text');
+        const slideCountText = document.getElementById('slide-count-text');
 
-        const voiceDropZone = document.getElementById('voice-drop-zone');
-        const voiceFileInput = document.getElementById('voice-file-input');
-        const voiceFileDisplay = document.getElementById('voice-file-display');
+        const chkAuto = document.getElementById('chk-auto');
+        const chkReset = document.getElementById('chk-reset');
+        const chkDraft = document.getElementById('chk-draft');
+        const selVoice = document.getElementById('sel-voice');
+        const btnRun = document.getElementById('btn-run');
 
-        const btnQuickGenerate = document.getElementById('btn-quick-generate');
-        const btnPreviewScripts = document.getElementById('btn-preview-scripts');
-        const progressBar = document.getElementById('progress-bar');
-        const pipelineStatusBadge = document.getElementById('pipeline-status-badge');
-        const logTerminal = document.getElementById('log-terminal');
+        const progressBarFill = document.getElementById('progress-bar-fill');
+        const progressStepText = document.getElementById('progress-step-text');
+        const progressPercentText = document.getElementById('progress-percent-text');
+        const logConsole = document.getElementById('log-console');
 
-        const videoPlaceholder = document.getElementById('video-placeholder');
-        const videoPlayer = document.getElementById('video-player');
-        const videoSource = document.getElementById('video-source');
-        const btnDownloadVideo = document.getElementById('btn-download-video');
+        const outputSection = document.getElementById('output-section');
+        const errorSection = document.getElementById('error-section');
+        const errorMessage = document.getElementById('error-message');
+        const btnRetry = document.getElementById('btn-retry');
 
-        const scriptEditorSection = document.getElementById('script-editor-section');
-        const slidesEditorGrid = document.getElementById('slides-editor-grid');
-        const btnConfirmRender = document.getElementById('btn-confirm-render');
+        const videoPreview = document.getElementById('video-preview');
+        const btnDlVideo = document.getElementById('btn-dl-video');
+        const btnDlAss = document.getElementById('btn-dl-ass');
+        const btnDlScript = document.getElementById('btn-dl-script');
 
-        // ==========================================
-        // TOAST NOTIFICATION SYSTEM (Custom SVG Icons)
-        // ==========================================
-        function showToast({ title, message, type = 'info', duration = 4000 }) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast-enter pointer-events-auto flex flex-col rounded-xl p-3.5 shadow-2xl border backdrop-blur-xl transition-all';
+        const stepKeys = ['parse', 'script', 'voice', 'render', 'assemble', 'qa_final'];
 
-            let iconId = 'icon-info';
-            let borderBg = '';
-
-            if (type === 'success') {
-                borderBg = 'bg-dark-900/95 border-emerald-500/40 text-emerald-300 shadow-emerald-500/10';
-                iconId = 'icon-check';
-            } else if (type === 'error') {
-                borderBg = 'bg-dark-900/95 border-rose-500/40 text-rose-300 shadow-rose-500/10';
-                iconId = 'icon-error';
-            } else if (type === 'warning') {
-                borderBg = 'bg-dark-900/95 border-amber-500/40 text-amber-300 shadow-amber-500/10';
-                iconId = 'icon-alert';
-            } else {
-                borderBg = 'bg-dark-900/95 border-sky-500/40 text-sky-300 shadow-sky-500/10';
-                iconId = 'icon-info';
+        // Tự động bật nháp khi chọn Edge-TTS NamMinh
+        selVoice.addEventListener('change', () => {
+            if (selVoice.value.includes('NamMinh') || selVoice.value.includes('vi-VN')) {
+                chkDraft.checked = true;
             }
-
-            toast.classList.add(...borderBg.split(' '));
-            toast.innerHTML = `
-                <div class="flex items-start justify-between space-x-2.5">
-                    <div class="flex items-start space-x-2.5">
-                        <svg class="w-5 h-5 shrink-0 mt-0.5"><use href="#${iconId}"></use></svg>
-                        <div>
-                            <h4 class="text-xs font-bold text-white">${title}</h4>
-                            <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">${message}</p>
-                        </div>
-                    </div>
-                    <button class="toast-close text-slate-400 hover:text-white p-0.5 shrink-0 transition-colors">
-                        <svg class="w-3.5 h-3.5"><use href="#icon-close"></use></svg>
-                    </button>
-                </div>
-            `;
-
-            container.appendChild(toast);
-
-            const removeToast = () => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 250);
-            };
-
-            toast.querySelector('.toast-close').addEventListener('click', removeToast);
-            if (duration > 0) {
-                setTimeout(removeToast, duration);
-            }
-        }
-
-        // ==========================================
-        // FILE UPLOAD HANDLERS
-        // ==========================================
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-sky-500', 'bg-sky-500/10'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-sky-500', 'bg-sky-500/10'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-sky-500', 'bg-sky-500/10');
-            if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
         });
+
+        // Bỏ chọn nháp thì chuyển giọng về ZeroTTS maichi
+        chkDraft.addEventListener('change', () => {
+            if (!chkDraft.checked && selVoice.value.includes('NamMinh')) {
+                selVoice.value = 'zerotts:maichi';
+            }
+        });
+
+        // Sự kiện Kéo - Thả file
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) uploadFile(e.target.files[0]);
+            if (e.target.files && e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
         });
 
-        voiceDropZone.addEventListener('click', () => voiceFileInput.click());
-        voiceDropZone.addEventListener('dragover', (e) => { e.preventDefault(); voiceDropZone.classList.add('border-indigo-500', 'bg-indigo-500/10'); });
-        voiceDropZone.addEventListener('dragleave', () => voiceDropZone.classList.remove('border-indigo-500', 'bg-indigo-500/10'));
-        voiceDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            voiceDropZone.classList.remove('border-indigo-500', 'bg-indigo-500/10');
-            if (e.dataTransfer.files.length) uploadVoiceSampleFile(e.dataTransfer.files[0]);
-        });
-        voiceFileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) uploadVoiceSampleFile(e.target.files[0]);
-        });
-
-        btnUseSample.addEventListener('click', () => {
-            currentFilename = 'demo_lecture.pptx';
-            fileNameDisplay.innerHTML = `<span class="text-emerald-400 font-semibold">Đang dùng: demo_lecture.pptx</span>`;
-            fileInfoDisplay.innerText = 'Slide bài giảng mẫu chuẩn 26 trang có nội dung và cấu trúc đầy đủ';
-            fileStatusTag.innerText = 'demo_lecture.pptx';
-            fileStatusTag.className = 'px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            appendLog('> Đã chọn slide mẫu demo_lecture.pptx.');
-            showToast({ title: 'Đã chọn Slide mẫu', message: 'demo_lecture.pptx (26 trang) đã sẵn sàng để tạo video.', type: 'info' });
-        });
-
-        function uploadFile(file) {
+        // Xử lý Upload file qua /api/upload
+        async function handleFileUpload(file) {
             if (!file.name.toLowerCase().endsWith('.pptx')) {
-                showToast({ title: 'File không hợp lệ', message: 'Vui lòng chỉ tải lên file bài giảng định dạng PowerPoint (.pptx)', type: 'warning' });
+                alert('Vui lòng chỉ chọn file PowerPoint (.pptx)!');
                 return;
             }
-            fileNameDisplay.innerText = `Đang tải lên: ${file.name}...`;
+
+            if (file.size > 100 * 1024 * 1024) {
+                alert('Dung lượng file vượt quá giới hạn 100MB!');
+                return;
+            }
+
+            dropzone.querySelector('.dropzone-label').textContent = 'Đang tải lên và đếm slide...';
+
             const formData = new FormData();
             formData.append('file', file);
 
-            fetch('/api/upload', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        currentFilename = data.filename;
-                        fileNameDisplay.innerHTML = `<span class="text-emerald-400 font-semibold">${data.filename}</span>`;
-                        fileInfoDisplay.innerText = `Kích thước: ${data.size_kb} KB`;
-                        fileStatusTag.innerText = 'Đã tải lên';
-                        fileStatusTag.className = 'px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                        appendLog(`> Tải lên thành công: ${data.filename}`);
-                        showToast({ title: 'Tải lên thành công', message: `File ${data.filename} (${data.size_kb} KB) đã sẵn sàng.`, type: 'success' });
-                    } else {
-                        showToast({ title: 'Lỗi tải file', message: data.error || 'Không thể tải file lên', type: 'error' });
-                    }
-                })
-                .catch(err => {
-                    showToast({ title: 'Lỗi mạng', message: String(err), type: 'error' });
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
                 });
-        }
+                const data = await res.json();
 
-        function uploadVoiceSampleFile(file) {
-            voiceFileDisplay.innerText = `Đang tải & trích xuất: ${file.name}...`;
-            const formData = new FormData();
-            formData.append('file', file);
-
-            fetch('/api/upload-voice-sample', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        voiceFileDisplay.innerHTML = `<span class="text-emerald-400 font-semibold">${data.filename} (${data.size_mb} MB)</span>`;
-                        appendLog(`> Đã gắn file giọng nói: ${data.filename}. Trích xuất WAV thành công.`);
-                        showToast({ title: 'Gắn giọng thật thành công', message: `Đã trích xuất file âm thanh chuẩn WAV (${data.size_mb} MB) để RVC học giọng.`, type: 'success' });
-                    } else {
-                        showToast({ title: 'Lỗi trích xuất giọng', message: data.error || 'Không thể xử lý file âm thanh', type: 'error' });
-                    }
-                })
-                .catch(err => {
-                    showToast({ title: 'Lỗi', message: String(err), type: 'error' });
-                });
-        }
-
-                        function toggleVoiceSettingsAccordion() {
-            const drawer = document.getElementById('voice-settings-drawer');
-            const chevron = document.getElementById('voice-settings-chevron');
-            if (!drawer) return;
-            if (drawer.classList.contains('hidden')) {
-                drawer.classList.remove('hidden');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-            } else {
-                drawer.classList.add('hidden');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        function updateVoiceSummaryPill() {
-            const vSel = document.getElementById('voice-select');
-            const rSel = document.getElementById('rate-select');
-            const pSel = document.getElementById('slide-pause-select');
-            const pill = document.getElementById('voice-summary-pill');
-            if (!vSel || !pill) return;
-
-            let vText = vSel.options[vSel.selectedIndex]?.text || 'Mai Chi';
-            const cleanName = vText.split('(')[0].trim();
-            const rateVal = rSel ? rSel.value : '-10%';
-            pill.innerText = `${cleanName} • ${rateVal}`;
-        }
-
-        function toggleLogAccordion() {
-            const drawer = document.getElementById('log-drawer');
-            const chevron = document.getElementById('log-chevron');
-            const toggleText = document.getElementById('log-toggle-text');
-            if (!drawer) return;
-            if (drawer.classList.contains('hidden')) {
-                drawer.classList.remove('hidden');
-                if (chevron) chevron.style.transform = 'rotate(180deg)';
-                if (toggleText) toggleText.innerText = 'Thu gọn';
-            } else {
-                drawer.classList.add('hidden');
-                if (chevron) chevron.style.transform = 'rotate(0deg)';
-                if (toggleText) toggleText.innerText = 'Mở rộng';
-            }
-        }
-
-        function toggleAdvancedAccordion() {
-            const drawer = document.getElementById('advanced-drawer');
-            const chevron = document.getElementById('advanced-chevron');
-            const badge = document.getElementById('advanced-status-badge');
-            
-            if (drawer.classList.contains('hidden')) {
-                drawer.classList.remove('hidden');
-                chevron.style.transform = 'rotate(180deg)';
-                badge.innerText = 'Đang mở';
-                badge.className = 'text-[10px] text-sky-400 font-semibold';
-            } else {
-                drawer.classList.add('hidden');
-                chevron.style.transform = 'rotate(0deg)';
-                badge.innerText = 'Mặc định thu gọn';
-                badge.className = 'text-[10px] text-slate-500';
-            }
-        }
-
-        function toggleKeyVisibility() {
-            const input = document.getElementById('gemini-api-key');
-            const eyeUse = document.querySelector('#eye-icon use');
-            if (input.type === 'password') {
-                input.type = 'text';
-                if (eyeUse) eyeUse.setAttribute('href', '#icon-eye-off');
-            } else {
-                input.type = 'password';
-                if (eyeUse) eyeUse.setAttribute('href', '#icon-eye');
-            }
-        }
-
-        function appendLog(text) {
-            const line = document.createElement('div');
-            line.innerText = text;
-            logTerminal.appendChild(line);
-            logTerminal.scrollTop = logTerminal.scrollHeight;
-            const snippet = document.getElementById('log-live-snippet');
-            if (snippet && text) {
-                snippet.innerText = text.length > 35 ? text.slice(0, 32) + '...' : text;
-            }
-        }
-
-        function clearLogs() {
-            logTerminal.innerHTML = '<div class="text-sky-400">> Đã xóa toàn bộ nhật ký console.</div>';
-        }
-
-        let pipelineStartTime = null;
-        let pipelineTimerInterval = null;
-
-        function startLiveTimer() {
-            pipelineStartTime = Date.now();
-            const timerPill = document.getElementById('pipeline-live-timer');
-            const timerText = document.getElementById('pipeline-live-timer-text');
-            if (timerPill) timerPill.classList.remove('hidden');
-            
-            if (pipelineTimerInterval) clearInterval(pipelineTimerInterval);
-            pipelineTimerInterval = setInterval(() => {
-                if (!pipelineStartTime) return;
-                const elapsedSec = ((Date.now() - pipelineStartTime) / 1000).toFixed(1);
-                if (timerText) timerText.innerText = `${elapsedSec}s`;
-            }, 100);
-        }
-
-        function stopLiveTimer(finalFormatted) {
-            if (pipelineTimerInterval) {
-                clearInterval(pipelineTimerInterval);
-                pipelineTimerInterval = null;
-            }
-            const timerText = document.getElementById('pipeline-live-timer-text');
-            if (timerText && finalFormatted) {
-                timerText.innerText = finalFormatted;
-            }
-        }
-
-        function connectSSE() {
-            if (eventSource) eventSource.close();
-            eventSource = new EventSource('/api/progress-stream');
-
-            eventSource.onmessage = function(e) {
-                const data = JSON.parse(e.data);
-                if (data.progress !== undefined) {
-                    progressBar.style.width = `${data.progress}%`;
-                }
-                if (data.log) {
-                    appendLog(data.log);
-                }
-                if (data.timings) {
-                    renderTimings(data.timings, data.step);
-                }
-                if (data.step) {
-                    updateStepBadges(data.step, data.timings);
+                if (!res.ok) {
+                    throw new Error(data.error || 'Lỗi khi tải file lên');
                 }
 
-                const summaryCard = document.getElementById('timing-summary-card');
+                selectedFilename = data.filename;
+                fileNameText.textContent = data.filename;
+                slideCountText.textContent = `${data.slides} slide`;
+                fileBadge.style.display = 'flex';
+                btnRun.disabled = false;
+                btnRun.textContent = 'Chạy';
 
-                if (data.status === 'completed' && data.video) {
-                    showCompletedVideo(data.video);
-                    stopLiveTimer(data.timings ? data.timings.total_formatted : null);
-                    pipelineStatusBadge.innerText = 'Hoàn thành 100%';
-                    pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                    if (summaryCard) summaryCard.classList.remove('hidden');
-                    showToast({ 
-                        title: 'Tạo Video Hoàn Tất!', 
-                        message: `Render thành công 1080p (${data.timings ? data.timings.total_formatted : ''}): ${data.video}`, 
-                        type: 'success', 
-                        duration: 7000 
-                    });
-                } else if (data.status === 'running') {
-                    if (!pipelineTimerInterval) startLiveTimer();
-                    if (summaryCard) summaryCard.classList.remove('hidden');
-                    pipelineStatusBadge.innerText = `Đang chạy: ${data.step}`;
-                    pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30 animate-pulse';
-                } else if (data.status === 'error') {
-                    stopLiveTimer();
-                    pipelineStatusBadge.innerText = 'Có lỗi xảy ra';
-                    pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30';
-                    showToast({ title: 'Tiến trình thất bại', message: data.log || 'Có lỗi xảy ra trong quá trình xử lý.', type: 'error', duration: 6000 });
-                }
-            };
-        }
-
-        function renderTimings(timings, currentStep) {
-            if (!timings) return;
-
-            const totalBadge = document.getElementById('timing-total-badge');
-            if (totalBadge && timings.total_formatted) {
-                totalBadge.innerText = `Tổng: ${timings.total_formatted}`;
-            }
-
-            for (let i = 1; i <= 5; i++) {
-                const stepKey = `step_${i}`;
-                const stepInfo = timings[stepKey];
-                const stepTimeEl = document.getElementById(`step-time-${i}`);
-                const summaryTimeEl = document.getElementById(`summary-time-${i}`);
-
-                if (stepInfo) {
-                    let displayTime = stepInfo.formatted || '--';
-                    if (stepInfo.status === 'completed') {
-                        if (stepTimeEl) {
-                            stepTimeEl.innerHTML = `<span class="inline-flex items-center text-emerald-400 font-bold"><svg class="w-2.5 h-2.5 mr-1 inline"><use href="#icon-check"></use></svg>${displayTime}</span>`;
-                        }
-                        if (summaryTimeEl) {
-                            summaryTimeEl.innerHTML = `<span class="text-emerald-400 font-bold">${displayTime}</span>`;
-                        }
-                    } else if (stepInfo.status === 'running') {
-                        if (stepTimeEl) {
-                            stepTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">Đang xử lý</span>`;
-                        }
-                        if (summaryTimeEl) {
-                            summaryTimeEl.innerHTML = `<span class="text-sky-400 font-bold animate-pulse">Đang chạy...</span>`;
-                        }
-                    } else {
-                        if (stepTimeEl) stepTimeEl.innerText = '--';
-                        if (summaryTimeEl) summaryTimeEl.innerText = '--';
-                    }
-                }
+                dropzone.querySelector('.dropzone-label').textContent = 'Đã chọn file: ' + data.filename;
+            } catch (err) {
+                alert('Tải file thất bại: ' + err.message);
+                dropzone.querySelector('.dropzone-label').textContent = 'Bấm để chọn file hoặc Kéo & Thả file .pptx vào đây';
             }
         }
 
-        function updateStepBadges(currentStep, timings) {
-            const stepMap = {
-                'Bước 1': 1,
-                'Bước 2': 2,
-                'Bước 3': 3,
-                'Bước 4': 4,
-                'Bước 5': 5
+        // Bắt đầu Chạy Pipeline
+        btnRun.addEventListener('click', startPipeline);
+        btnRetry.addEventListener('click', startPipeline);
+
+        async function startPipeline() {
+            if (!selectedFilename) {
+                alert('Vui lòng chọn hoặc tải file slide .pptx trước!');
+                return;
+            }
+
+            // Khóa nút Chạy ngay lập tức
+            btnRun.disabled = true;
+            btnRun.textContent = 'Đang chạy...';
+
+            // Reset UI
+            errorSection.style.display = 'none';
+            outputSection.style.display = 'none';
+            logConsole.textContent = 'Đang gửi yêu cầu khởi động pipeline...\n';
+            resetStepsUI();
+
+            const payload = {
+                filename: selectedFilename,
+                auto: chkAuto.checked,
+                reset: chkReset.checked,
+                draft: chkDraft.checked,
+                voice: selVoice.value
             };
 
-            let activeIndex = 0;
-            for (const [key, idx] of Object.entries(stepMap)) {
-                if (currentStep.includes(key)) {
-                    activeIndex = idx;
-                    break;
+            try {
+                const res = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Không thể khởi động job');
                 }
-            }
 
-            if (currentStep.includes('Hoàn Thành')) {
-                activeIndex = 6;
-            }
+                currentJobId = data.job_id;
+                logConsole.textContent += `Khởi tạo Job thành công (ID: ${currentJobId}). Đang xử lý...\n`;
 
-            for (let i = 1; i <= 5; i++) {
-                const el = document.getElementById(`step-badge-${i}`);
-                if (!el) continue;
-                if (i < activeIndex || (activeIndex === 6)) {
-                    el.className = 'p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold flex flex-col justify-between transition-all';
-                } else if (i === activeIndex) {
-                    el.className = 'p-2.5 rounded-xl bg-sky-500/20 border border-sky-500/50 text-sky-300 font-bold glow-primary flex flex-col justify-between transition-all';
+                // Bắt đầu polling mỗi 2 giây
+                if (pollTimer) clearInterval(pollTimer);
+                pollTimer = setInterval(pollJobStatus, 2000);
+            } catch (err) {
+                btnRun.disabled = false;
+                btnRun.textContent = 'Chạy lại';
+                alert('Không thể chạy: ' + err.message);
+            }
+        }
+
+        // Polling trạng thái job
+        async function pollJobStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const res = await fetch(`/api/status/${currentJobId}`);
+                if (!res.ok) return;
+
+                const job = await res.json();
+
+                // Cập nhật progress bar
+                progressBarFill.style.width = `${job.progress}%`;
+                progressPercentText.textContent = `${job.progress}%`;
+                progressStepText.textContent = `Đang xử lý: ${job.step.toUpperCase()}`;
+
+                // Cập nhật trạng thái từng bước
+                updateStepsUI(job.step_states, job.step_errors);
+
+                // Cập nhật logs
+                if (job.logs && job.logs.length > 0) {
+                    logConsole.textContent = job.logs.join('\n');
+                    logConsole.scrollTop = logConsole.scrollHeight;
+                }
+
+                // Xử lý khi hoàn tất
+                if (job.done) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                    btnRun.disabled = false;
+                    btnRun.textContent = 'Chạy';
+                    progressStepText.textContent = 'Hoàn thành 100%';
+
+                    // Hiển thị output video và link tải
+                    videoPreview.src = job.outputs.video_stream;
+                    btnDlVideo.href = job.outputs.video;
+                    btnDlAss.href = job.outputs.subtitles;
+                    btnDlScript.href = job.outputs.script;
+                    outputSection.style.display = 'block';
+                }
+
+                // Xử lý khi gặp lỗi
+                if (job.status === 'error' || job.error) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                    btnRun.disabled = false;
+                    btnRun.textContent = 'Chạy lại';
+                    progressStepText.textContent = 'Có lỗi xảy ra';
+
+                    errorMessage.textContent = `Lỗi tại bước [${job.step.toUpperCase()}]: ${job.error || 'Thao tác không hoàn thành.'}`;
+                    errorSection.style.display = 'block';
+                }
+
+            } catch (err) {
+                console.warn('Lỗi khi thăm dò trạng thái job:', err);
+            }
+        }
+
+        function resetStepsUI() {
+            progressBarFill.style.width = '5%';
+            progressPercentText.textContent = '5%';
+            progressStepText.textContent = 'Đang khởi động...';
+            stepKeys.forEach(k => {
+                const badge = document.getElementById(`badge-${k}`);
+                if (badge) {
+                    badge.className = 'step-status status-waiting';
+                    badge.textContent = '⏳ chờ';
+                }
+            });
+        }
+
+        function updateStepsUI(stepStates, stepErrors) {
+            if (!stepStates) return;
+
+            stepKeys.forEach(k => {
+                const badge = document.getElementById(`badge-${k}`);
+                if (!badge) return;
+
+                const state = stepStates[k] || 'waiting';
+                if (state === 'running') {
+                    badge.className = 'step-status status-running';
+                    badge.textContent = '🔄 đang chạy';
+                } else if (state === 'done') {
+                    badge.className = 'step-status status-done';
+                    badge.textContent = '✅ xong';
+                } else if (state === 'error') {
+                    badge.className = 'step-status status-error';
+                    const errShort = (stepErrors && stepErrors[k]) ? stepErrors[k].slice(0, 30) : 'lỗi';
+                    badge.textContent = `❌ ${errShort}`;
                 } else {
-                    el.className = 'p-2.5 rounded-xl bg-dark-900 border border-slate-800 text-slate-500 flex flex-col justify-between transition-all';
+                    badge.className = 'step-status status-waiting';
+                    badge.textContent = '⏳ chờ';
                 }
-            }
-        }
-
-        function showCompletedVideo(videoFilename) {
-            const videoUrl = `/api/video/${videoFilename}?t=${new Date().getTime()}`;
-            const downloadUrl = `/api/download-video/${videoFilename}`;
-
-            videoPlaceholder.classList.add('hidden');
-            videoPlayer.classList.remove('hidden');
-            videoPlayer.src = videoUrl;
-            videoSource.src = videoUrl;
-            btnDownloadVideo.href = downloadUrl;
-            btnDownloadVideo.classList.remove('hidden');
-            videoPlayer.load();
-        }
-
-        function checkLatestVideo() {
-            fetch('/api/latest-video')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.exists && data.filename) {
-                        showCompletedVideo(data.filename);
-                        pipelineStatusBadge.innerText = 'Đã có video sẵn sàng';
-                        pipelineStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                        appendLog(`> Đã nạp video bài giảng có sẵn: ${data.filename} (${data.size_mb} MB)`);
-                    }
-                })
-                .catch(() => {});
-        }
-
-        btnQuickGenerate.addEventListener('click', () => {
-            const apiKey = document.getElementById('gemini-api-key').value;
-            const voice = document.getElementById('voice-select').value;
-            const rate = document.getElementById('rate-select')?.value || '-10%';
-            const slidePause = parseFloat(document.getElementById('slide-pause-select')?.value || '2.3');
-            const enableRvc = document.getElementById('rvc-toggle').checked;
-
-            appendLog(`> Bắt đầu tạo video 1-Click cho file: ${currentFilename}`);
-            showToast({ title: 'Bắt đầu tiến trình', message: `Hệ thống AI đang khởi động sản xuất video cho ${currentFilename}...`, type: 'info' });
-            connectSSE();
-
-            fetch('/api/start-pipeline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: currentFilename,
-                    gemini_api_key: apiKey,
-                    voice: voice,
-                    rate: rate,
-                    slide_pause: slidePause,
-                    enable_rvc: enableRvc
-                })
-            }).then(r => r.json()).then(data => {
-                if (data.error) showToast({ title: 'Lỗi', message: data.error, type: 'error' });
-            });
-        });
-
-        btnPreviewScripts.addEventListener('click', () => {
-            const apiKey = document.getElementById('gemini-api-key').value;
-            appendLog('> Đang trích xuất slide và chuẩn bị kịch bản...');
-            btnPreviewScripts.disabled = true;
-            btnPreviewScripts.innerHTML = `<span>Đang tải kịch bản...</span>`;
-            showToast({ title: 'Đang trích xuất', message: 'Hệ thống đang trích xuất slide và tạo kịch bản sư phạm...', type: 'info' });
-
-            fetch('/api/extract-and-script', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: currentFilename,
-                    gemini_api_key: apiKey
-                })
-            }).then(r => r.json()).then(data => {
-                btnPreviewScripts.disabled = false;
-                btnPreviewScripts.innerHTML = `
-                    <svg class="w-4 h-4 text-sky-400 mr-2"><use href="#icon-script-edit"></use></svg>
-                    <span>Xem & Sửa Kịch Bản Trước Khi Tạo</span>
-                `;
-                
-                if (data.success) {
-                    loadedSlides = data.slides;
-                    renderScriptEditor(data.slides);
-                    scriptEditorSection.classList.remove('hidden');
-                    scriptEditorSection.scrollIntoView({ behavior: 'smooth' });
-                    showToast({ title: 'Kịch bản đã sẵn sàng', message: `Đã nạp ${data.slides.length} slide. Bạn có thể xem và chỉnh sửa trực tiếp phía dưới!`, type: 'success' });
-                } else {
-                    showToast({ title: 'Lỗi trích xuất kịch bản', message: data.error || 'Lỗi xử lý', type: 'error' });
-                }
-            }).catch(e => {
-                btnPreviewScripts.disabled = false;
-                btnPreviewScripts.innerHTML = `<span>Xem & Sửa Kịch Bản Trước Khi Tạo</span>`;
-                showToast({ title: 'Lỗi', message: String(e), type: 'error' });
-            });
-        });
-
-        function renderScriptEditor(slides) {
-            slidesEditorGrid.innerHTML = '';
-            slides.forEach((s, idx) => {
-                const card = document.createElement('div');
-                card.className = 'bg-dark-900/90 rounded-xl p-4 border border-slate-800 space-y-3 flex flex-col justify-between';
-                const hasDemo = Boolean(s.has_code_demo);
-                const demo = s.code_demo || {
-                    filename: 'main.py',
-                    language: 'python',
-                    code: '',
-                    terminal_command: 'python main.py',
-                    terminal_output: '',
-                    narration: ''
-                };
-
-                card.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-sky-400">Trang Slide ${s.slide_index}</span>
-                        <span class="text-[11px] text-slate-400 truncate max-w-[160px]">${s.title}</span>
-                    </div>
-                    <div class="aspect-video bg-dark-950 rounded-lg overflow-hidden border border-slate-800">
-                        <img src="${s.image_url}?t=${new Date().getTime()}" alt="Slide ${s.slide_index}" class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Lời dẫn nhập slide (Voiceover):</label>
-                        <textarea id="script-input-${idx}" rows="3" class="w-full bg-dark-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-sky-500">${s.script}</textarea>
-                    </div>
-
-                    <!-- Sequential Code Demo Configuration Box -->
-                    <div class="pt-2 border-t border-slate-800/80">
-                        <div class="flex items-center justify-between mb-2">
-                            <label class="flex items-center space-x-2 cursor-pointer text-xs font-semibold ${hasDemo ? 'text-emerald-400' : 'text-slate-400'}">
-                                <input type="checkbox" id="demo-toggle-${idx}" class="w-4 h-4 rounded border-slate-700 text-sky-500 focus:ring-0 bg-dark-950 cursor-pointer" ${hasDemo ? 'checked' : ''} onchange="toggleDemoBox(${idx})">
-                                <span class="flex items-center space-x-1.5"><svg class="w-3.5 h-3.5"><use href="#icon-terminal"></use></svg><span>Demo Code (Chuyển cảnh tuần tự)</span></span>
-                            </label>
-                            <span class="text-[10px] text-slate-500 font-mono">Remotion Full-screen</span>
-                        </div>
-
-                        <div id="demo-box-${idx}" class="${hasDemo ? '' : 'hidden'} space-y-2.5 p-3 rounded-lg bg-dark-950 border border-slate-800">
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[10px] text-slate-400 mb-1">Tên file:</label>
-                                    <input type="text" id="demo-filename-${idx}" value="${demo.filename || 'main.py'}" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-sky-500">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] text-slate-400 mb-1">Ngôn ngữ:</label>
-                                    <select id="demo-lang-${idx}" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 font-mono focus:outline-none focus:border-sky-500">
-                                        <option value="python" ${(demo.language === 'python') ? 'selected' : ''}>Python</option>
-                                        <option value="javascript" ${(demo.language === 'javascript') ? 'selected' : ''}>JavaScript</option>
-                                        <option value="typescript" ${(demo.language === 'typescript') ? 'selected' : ''}>TypeScript</option>
-                                        <option value="bash" ${(demo.language === 'bash') ? 'selected' : ''}>Bash / Shell</option>
-                                        <option value="cpp" ${(demo.language === 'cpp') ? 'selected' : ''}>C++</option>
-                                        <option value="java" ${(demo.language === 'java') ? 'selected' : ''}>Java</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Mã nguồn (Hiệu ứng gõ máy tính):</label>
-                                <textarea id="demo-code-${idx}" rows="4" class="w-full bg-dark-900 border border-slate-800 rounded p-2 text-[11px] font-mono text-emerald-400 focus:outline-none focus:border-sky-500 whitespace-pre">${demo.code || ''}</textarea>
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-[10px] text-slate-400 mb-1">Lệnh chạy Terminal:</label>
-                                    <input type="text" id="demo-cmd-${idx}" value="${demo.terminal_command || ''}" placeholder="python main.py" class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-sky-500">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] text-slate-400 mb-1">Kết quả Terminal:</label>
-                                    <input type="text" id="demo-output-${idx}" value="${demo.terminal_output || ''}" placeholder="Output kết quả..." class="w-full bg-dark-900 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-200 font-mono focus:outline-none focus:border-sky-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-slate-400 mb-1">Thuyết minh khi gõ & chạy code:</label>
-                                <textarea id="demo-narration-${idx}" rows="2" class="w-full bg-dark-900 border border-slate-800 rounded p-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Lời giảng thuyết minh chi tiết trong lúc demo...">${demo.narration || ''}</textarea>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                slidesEditorGrid.appendChild(card);
             });
         }
-
-        window.toggleDemoBox = function(idx) {
-            const chk = document.getElementById(`demo-toggle-${idx}`);
-            const box = document.getElementById(`demo-box-${idx}`);
-            if (box && chk) {
-                if (chk.checked) {
-                    box.classList.remove('hidden');
-                    chk.parentElement.classList.add('text-emerald-400');
-                    chk.parentElement.classList.remove('text-slate-400');
-                } else {
-                    box.classList.add('hidden');
-                    chk.parentElement.classList.remove('text-emerald-400');
-                    chk.parentElement.classList.add('text-slate-400');
-                }
-            }
-        };
-
-        function closeScriptEditor() {
-            scriptEditorSection.classList.add('hidden');
-        }
-
-        btnConfirmRender.addEventListener('click', () => {
-            const editedScripts = loadedSlides.map((s, idx) => {
-                const textarea = document.getElementById(`script-input-${idx}`);
-                const demoToggle = document.getElementById(`demo-toggle-${idx}`);
-                const hasDemo = demoToggle ? demoToggle.checked : false;
-
-                const item = {
-                    slide_index: s.slide_index,
-                    title: s.title,
-                    script: textarea ? textarea.value : s.script,
-                    has_code_demo: hasDemo
-                };
-
-                if (hasDemo) {
-                    item.code_demo = {
-                        filename: document.getElementById(`demo-filename-${idx}`)?.value || 'main.py',
-                        language: document.getElementById(`demo-lang-${idx}`)?.value || 'python',
-                        code: document.getElementById(`demo-code-${idx}`)?.value || '',
-                        terminal_command: document.getElementById(`demo-cmd-${idx}`)?.value || '',
-                        terminal_output: document.getElementById(`demo-output-${idx}`)?.value || '',
-                        narration: document.getElementById(`demo-narration-${idx}`)?.value || ''
-                    };
-                }
-                return item;
-            });
-
-
-            const apiKey = document.getElementById('gemini-api-key').value;
-            const voice = document.getElementById('voice-select').value;
-            const rate = document.getElementById('rate-select')?.value || '-10%';
-            const slidePause = parseFloat(document.getElementById('slide-pause-select')?.value || '2.3');
-            const enableRvc = document.getElementById('rvc-toggle').checked;
-
-            closeScriptEditor();
-            appendLog('> Bắt đầu xuất video với kịch bản tùy chỉnh của bạn...');
-            showToast({ title: 'Bắt đầu kết xuất', message: 'Đang khởi động render video với kịch bản tùy chỉnh...', type: 'info' });
-            connectSSE();
-
-            fetch('/api/start-pipeline', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    filename: currentFilename,
-                    custom_scripts: editedScripts,
-                    gemini_api_key: apiKey,
-                    voice: voice,
-                    rate: rate,
-                    slide_pause: slidePause,
-                    enable_rvc: enableRvc
-                })
-            }).then(r => r.json()).then(data => {
-                if (data.error) showToast({ title: 'Lỗi', message: data.error, type: 'error' });
-            });
-        });
-
-        // Initialize on startup
-        const vSelectEl = document.getElementById('voice-select');
-        const rSelectEl = document.getElementById('rate-select');
-        if (vSelectEl) vSelectEl.addEventListener('change', updateVoiceSummaryPill);
-        if (rSelectEl) rSelectEl.addEventListener('change', updateVoiceSummaryPill);
-        updateVoiceSummaryPill();
-
-        connectSSE();
-        checkLatestVideo();
     </script>
 </body>
 </html>

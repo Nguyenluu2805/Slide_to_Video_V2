@@ -116,24 +116,29 @@ SLIDE_PRE_PAUSE=0.8
 SLIDE_POST_PAUSE=1.5
 ```
 
-### 3. Chạy qua dòng lệnh (Khuyến nghị)
+### 3. Khởi chạy Web Studio (Giao diện đồ họa tiện lợi)
+```bash
+python app.py
+```
+Mở trình duyệt tại: **`http://localhost:5000`**
+- **Khối 1 — Input:** Kéo thả file `.pptx` (tối đa 100MB), hệ thống tự động đếm số slide.
+- **Khối 2 — Tùy chọn:** Bật/tắt tự động (`--auto`), chạy lại từ đầu (`--reset`), chế độ nháp siêu tốc (`--draft`), chọn giọng đọc (`ZeroTTS - maichi` hoặc `Edge-TTS - NamMinh`). Nút Chạy tự động khóa chống chạy chồng.
+- **Khối 3 — Tiến độ & Kết quả:** Thanh tiến độ thời gian thực, 6 bước (`Parse` → `Script` → `Voice` → `Render` → `Assemble` → `QA`), log chi tiết, xem trước video và tải video (.mp4), phụ đề (.ass), kịch bản (.json).
 
+### 4. Chạy qua dòng lệnh CLI
 ```bash
 # Chạy có duyệt kịch bản (Human Review)
 python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx
 
-# Chạy tự động hoàn toàn (bỏ qua bước bấm Y)
+# Chạy tự động hoàn toàn
 python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx --auto
+
+# Chạy chế độ nháp siêu tốc (Edge-TTS + Render tĩnh)
+python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx --auto --draft
 
 # Chạy lại từ đầu (xóa sạch checkpoint cũ)
 python main.py --slides test_data/Ex01_Hybrid_Workflow.pptx --reset
 ```
-
-### 4. Khởi chạy Web Studio (Tùy chọn)
-```bash
-python app.py
-```
-Mở trình duyệt tại: **`http://127.0.0.1:5000`**
 
 ### 5. Chạy bộ kiểm thử tự động
 ```bash
