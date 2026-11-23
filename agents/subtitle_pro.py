@@ -248,7 +248,7 @@ def build_ass_from_script(
     pre_pause: float = 0.8,
     post_pause: float = 1.5,
     use_crossfade: bool = True,
-    crossfade_dur: float = 0.5,
+    crossfade_dur: float = 0.8,
     font_size: Optional[int] = None,
 ) -> Path:
     """

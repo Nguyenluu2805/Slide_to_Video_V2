@@ -212,7 +212,8 @@ def worker_pipeline_thread(
     reset_mode: bool,
     provider: str,
     voice: Optional[str],
-    draft_mode: bool
+    draft_mode: bool,
+    subtitles: bool = True
 ):
     """Luồng worker thực thi pipeline độc lập cho một job."""
     global ACTIVE_JOB_ID
@@ -227,7 +228,7 @@ def worker_pipeline_thread(
         print(f"\n{'='*70}")
         print(f"🎬 BẮT ĐẦU JOB: {job_id}")
         print(f"📁 Slide file  : {pptx_path.name}")
-        print(f"⚡ Tùy chọn    : Auto={auto_mode}, Reset={reset_mode}, Draft={draft_mode}")
+        print(f"⚡ Tùy chọn    : Auto={auto_mode}, Reset={reset_mode}, Draft={draft_mode}, Subtitles={subtitles}")
         print(f"🎙️ Giọng đọc   : Provider={provider}, Voice={voice or 'mặc định'}")
         print(f"📂 Thư mục job : {job_dir}")
         print(f"{'='*70}\n")
@@ -239,7 +240,8 @@ def worker_pipeline_thread(
             reset_mode=reset_mode,
             provider=provider,
             voice=voice,
-            draft_mode=draft_mode
+            draft_mode=draft_mode,
+            subtitles=subtitles
         )
 
         capture.flush()
@@ -387,6 +389,7 @@ def api_run():
     auto_mode = bool(data.get("auto", True))
     reset_mode = bool(data.get("reset", False))
     draft_requested = bool(data.get("draft", False))
+    subtitles_enabled = bool(data.get("subtitles", True))
     voice_input = str(data.get("voice", config.TTS_VOICE)).strip()
 
     # Xác định provider và voice linh hoạt hỗ trợ toàn bộ các giọng trong hệ thống
@@ -441,7 +444,8 @@ def api_run():
             "reset_mode": reset_mode,
             "provider": provider,
             "voice": voice,
-            "draft_mode": draft_mode
+            "draft_mode": draft_mode,
+            "subtitles": subtitles_enabled
         },
         daemon=True
     )

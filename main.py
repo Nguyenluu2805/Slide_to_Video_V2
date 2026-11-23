@@ -66,6 +66,11 @@ def parse_args():
         default=None,
         help="Giới hạn phạm vi trang/slide cần xử lý (Ví dụ: 1-2, 1-3, hoặc 2). Mặc định xử lý toàn bộ."
     )
+    parser.add_argument(
+        "--no-subtitles",
+        action="store_true",
+        help="Tạm thời tắt hardsub phụ đề vào video thành phẩm (vẫn xuất file .ass/.srt)."
+    )
     return parser.parse_args()
 
 
@@ -82,6 +87,9 @@ def main():
         print(f"[!] Lỗi: Định dạng file không được hỗ trợ: {input_path}")
         print("Hệ thống chỉ nhận file PowerPoint (.pptx) và PDF (.pdf).")
         sys.exit(1)
+
+    if args.no_subtitles:
+        config.SUBTITLES_ENABLED = False
 
     if args.draft:
         config.DRAFT_MODE = True
@@ -112,6 +120,10 @@ def main():
     if args.pages:
         input_banner += f" [Chọn phạm vi: {args.pages}]"
 
+    current_fps = config.VIDEO_FPS if args.draft else getattr(config, "VIDEO_FPS_FINAL", 30)
+    fps_banner = f"{current_fps}fps (bản cuối mượt)" if (not args.draft and current_fps == 60) else f"{current_fps}fps"
+    sub_banner = "BẬT (hardsub .ass V2)" if config.SUBTITLES_ENABLED else "TẮT (--no-subtitles, tạm thời)"
+
     print("=" * 70)
     print("🚀 AI VIDEO AGENT V2 — STUDIO THUYẾT TRÌNH BÀI GIẢNG")
     print(f"📁 File Input      : {input_path}")
@@ -119,7 +131,8 @@ def main():
     print(f"⚡ Chế độ          : {'NHÁP SIÊU TỐC (--draft: Edge-TTS + Static Render)' if args.draft else 'BẢN CUỐI (ZeroTTS + Ken Burns d=1)'}")
     print(f"🎙️ TTS Provider    : {args.provider} (Voice: {args.voice or (config.EDGE_TTS_VOICE if args.draft else config.TTS_VOICE)})")
     print(f"🤖 Gemini Model    : {config.GEMINI_MODEL}")
-    print(f"🎬 Video Specs     : {config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT} @ {config.VIDEO_FPS}fps")
+    print(f"🎬 Video Specs     : {config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT} @ {fps_banner}")
+    print(f"💬 Phụ đề          : {sub_banner}")
     print(f"⚡ Human Review    : {'TẮT (--auto)' if args.auto else 'BẬT (Chờ duyệt kịch bản)'}")
     print(f"🔄 Checkpoint Mode : {'RESET từ đầu (--reset)' if args.reset else 'Tiếp tục từ checkpoint nếu có'}")
     hw = config.get_hardware_device_info()
@@ -135,7 +148,8 @@ def main():
             provider=args.provider,
             voice=args.voice,
             draft_mode=args.draft,
-            pages=args.pages
+            pages=args.pages,
+            subtitles=config.SUBTITLES_ENABLED
         )
     except ImportError:
         print("[*] Pipeline graph đang được cấu hình...")

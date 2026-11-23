@@ -27,6 +27,7 @@ class VideoAgentState(TypedDict, total=False):
     provider: str
     voice: Optional[str]
     pages: Optional[str]
+    subtitles_enabled: bool
     slides: List[Dict[str, Any]]
     current_node: str
     error: Optional[str]
@@ -268,6 +269,8 @@ def node_qa_final(state: VideoAgentState) -> Dict[str, Any]:
     # Lấy thông tin video hoàn chỉnh
     vid_size_mb = round(final_vid.stat().st_size / (1024 * 1024), 2)
     vid_dur = get_audio_duration_seconds(final_vid)
+    subtitles_on = state.get("subtitles_enabled", getattr(config, "SUBTITLES_ENABLED", True))
+    sub_label = "BẬT (hardsub .ass V2)" if subtitles_on else "TẮT (--no-subtitles, tạm thời)"
 
     elapsed = time.time() - t0
     print(f"[TIMING] node qa_final: {elapsed:.2f}s")
@@ -278,6 +281,7 @@ def node_qa_final(state: VideoAgentState) -> Dict[str, Any]:
     print(f"\n[+] QA Final ĐẠT CHUẨN:")
     print(f"    🎬 Video thành phẩm : {final_vid.resolve()} ({vid_size_mb} MB, {vid_dur:.1f}s)")
     print(f"    📄 Phụ đề SRT       : {final_s.resolve()}")
+    print(f"    💬 Phụ đề video     : {sub_label}")
     print(f"    📊 Tổng số slide    : {len(slides)} slide")
     print("=" * 60)
     print(f"⏱️ [TIMING SUMMARY] TỔNG THỜI GIAN CÁC NODE: {total_pipeline_time:.2f}s")
@@ -325,12 +329,16 @@ def run_pipeline(
     provider: str = config.TTS_PROVIDER,
     voice: Optional[str] = None,
     draft_mode: bool = False,
-    pages: Optional[str] = None
+    pages: Optional[str] = None,
+    subtitles: Optional[bool] = None
 ) -> Dict[str, Any]:
     """Hàm thực thi chính của LangGraph Pipeline."""
     if draft_mode:
         config.DRAFT_MODE = True
         print("[*] Chế độ --draft được kích hoạt: Tăng tốc tối đa (Edge-TTS + Static Render).")
+
+    if subtitles is not None:
+        config.SUBTITLES_ENABLED = subtitles
 
     if reset_mode:
         print("[*] Chế độ --reset: Dọn dẹp toàn bộ dữ liệu checkpoint, audio và video cũ...")
@@ -358,6 +366,7 @@ def run_pipeline(
         "provider": provider,
         "voice": voice,
         "pages": pages,
+        "subtitles_enabled": config.SUBTITLES_ENABLED,
         "slides": [],
         "current_node": "start",
         "error": None,

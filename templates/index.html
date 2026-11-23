@@ -483,6 +483,14 @@
                 <div class="option-note">Nháp = giọng Edge-TTS NamMinh, nhanh. Tắt = giọng ZeroTTS maichi, chậm hơn.</div>
             </div>
 
+            <div class="option-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chk-subtitles" checked>
+                    <span>Chèn phụ đề</span>
+                </label>
+                <div class="option-note">Bật = hardsub phụ đề .ass V2 vào video. Tắt = xuất video sạch không chữ phụ đề (vẫn sinh file .ass/.srt).</div>
+            </div>
+
             <div class="select-group">
                 <label class="select-label" for="sel-voice">Giọng đọc</label>
                 <select id="sel-voice" class="select-control">
@@ -589,6 +597,7 @@
         const chkAuto = document.getElementById('chk-auto');
         const chkReset = document.getElementById('chk-reset');
         const chkDraft = document.getElementById('chk-draft');
+        const chkSubtitles = document.getElementById('chk-subtitles');
         const selVoice = document.getElementById('sel-voice');
         const btnRun = document.getElementById('btn-run');
 
@@ -729,6 +738,7 @@
                 auto: chkAuto.checked,
                 reset: chkReset.checked,
                 draft: chkDraft.checked,
+                subtitles: chkSubtitles ? chkSubtitles.checked : true,
                 voice: selVoice.value
             };
 

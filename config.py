@@ -169,11 +169,19 @@ DRAFT_MODE = os.getenv("DRAFT_MODE", "false").lower() in ("true", "1", "yes")
 VIDEO_WIDTH = int(os.getenv("VIDEO_WIDTH", "1920"))
 VIDEO_HEIGHT = int(os.getenv("VIDEO_HEIGHT", "1080"))
 VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))
+VIDEO_FPS_FINAL = int(os.getenv("VIDEO_FPS_FINAL", "30"))
+KEN_BURNS_ZOOM = float(os.getenv("KEN_BURNS_ZOOM", "1.10"))
 SLIDE_PRE_PAUSE = float(os.getenv("SLIDE_PRE_PAUSE", "0.8"))    # Dừng 0.8s đầu slide trước khi nói
 SLIDE_POST_PAUSE = float(os.getenv("SLIDE_POST_PAUSE", "1.5"))  # Dừng 1.5s cuối slide sau khi nói xong
 SLIDE_PAUSE_DURATION = SLIDE_PRE_PAUSE + SLIDE_POST_PAUSE
 
-# Cấu hình kích thước & hiển thị phụ đề Pro V2
+# Cấu hình Chuyển cảnh mềm (BioPlus Transitions)
+TRANSITION_TYPE = os.getenv("TRANSITION_TYPE", "fade")
+TRANSITION_DURATION = float(os.getenv("TRANSITION_DURATION", "0.8"))
+TRANSITION_SEQUENCE = os.getenv("TRANSITION_SEQUENCE", "")
+
+# Cấu hình phụ đề (Bật/Tắt tạm thời) & kích thước Pro V2
+SUBTITLES_ENABLED = os.getenv("SUBTITLES_ENABLED", "true").lower() in ("true", "1", "yes")
 SUBTITLE_FONT_SIZE = int(os.getenv("SUBTITLE_FONT_SIZE", "42"))
 SUBTITLE_OUTLINE = float(os.getenv("SUBTITLE_OUTLINE", "1.4"))
 SUBTITLE_SHADOW = float(os.getenv("SUBTITLE_SHADOW", "0.8"))

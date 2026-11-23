@@ -39,11 +39,13 @@ def render_single_slide_video(
     # 1. Đo thời lượng audio thật
     audio_dur = get_audio_duration_seconds(audio_path)
     total_dur = round(audio_dur + pre_pause + post_pause, 2)
-    total_frames = int(round(total_dur * config.VIDEO_FPS))
+    is_draft = getattr(config, "DRAFT_MODE", False)
+    current_fps = config.VIDEO_FPS if is_draft else getattr(config, "VIDEO_FPS_FINAL", 30)
+    total_frames = int(round(total_dur * current_fps))
 
     delay_ms = int(round(pre_pause * 1000))
 
-    if getattr(config, "DRAFT_MODE", False):
+    if is_draft:
         # Chế độ nháp: Render ảnh tĩnh, không qua zoompan, tốc độ nhanh vượt trội
         filter_complex = (
             f"[0:v]scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT}[v];"
@@ -61,17 +63,17 @@ def render_single_slide_video(
             str(output_mp4.resolve())
         ]
     else:
-        # Bản cuối: Đưa ảnh vào như video 30fps thật (-framerate 30 -loop 1 -i slide.png)
-        # và zoompan với d=1 để không nhân bản frame, loại bỏ hoàn toàn hiện tượng giật (judder)
-        zoom_step = 0.05 / max(1, total_frames)
+        # Bản cuối: Ken Burns zoom chậm liên tục kiểu BioPlus (1.00 -> 1.10), d=1 khử judder hoàn toàn
+        max_zoom = min(1.15, max(1.01, getattr(config, "KEN_BURNS_ZOOM", 1.10)))
+        zoom_step = (max_zoom - 1.0) / max(1, total_frames)
         filter_complex = (
             f"[0:v]scale={config.VIDEO_WIDTH}:{config.VIDEO_HEIGHT},"
-            f"zoompan=z='min(zoom+{zoom_step:.8f},1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT}:fps={config.VIDEO_FPS}[v];"
+            f"zoompan=z='min(zoom+{zoom_step:.8f},{max_zoom:.2f})':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={config.VIDEO_WIDTH}x{config.VIDEO_HEIGHT}:fps={current_fps}[v];"
             f"[1:a]adelay=delays={delay_ms}:all=1,apad=pad_dur={post_pause}[a]"
         )
         cmd = [
             "ffmpeg", "-y",
-            "-framerate", str(config.VIDEO_FPS), "-loop", "1", "-i", str(image_path.resolve()),
+            "-framerate", str(current_fps), "-loop", "1", "-i", str(image_path.resolve()),
             "-i", str(audio_path.resolve()),
             "-filter_complex", filter_complex,
             "-map", "[v]", "-map", "[a]",
@@ -99,7 +101,12 @@ def render_presentation_slides(slides_data: List[Dict[str, Any]]) -> List[Dict[s
     """
     config.VIDEO_DIR.mkdir(parents=True, exist_ok=True)
     total_slides = len(slides_data)
-    print(f"\n[*] Bắt đầu render video cho {total_slides} slide bằng FFmpeg 1080p @ 30fps...")
+    is_draft = getattr(config, "DRAFT_MODE", False)
+    current_fps = config.VIDEO_FPS if is_draft else getattr(config, "VIDEO_FPS_FINAL", 30)
+    fps_desc = f"{current_fps}fps (bản cuối mượt)" if (not is_draft and current_fps == 60) else f"{current_fps}fps"
+    zoom_val = min(1.15, max(1.01, getattr(config, "KEN_BURNS_ZOOM", 1.10)))
+    zoom_desc = "Tắt (ảnh tĩnh)" if is_draft else f"Ken Burns 1.00 -> {zoom_val:.2f}"
+    print(f"\n[*] Bắt đầu render video cho {total_slides} slide bằng FFmpeg 1080p @ {fps_desc} [{zoom_desc}]...")
 
     pre_pause = getattr(config, "SLIDE_PRE_PAUSE", 0.8)
     post_pause = getattr(config, "SLIDE_POST_PAUSE", 1.5)

@@ -21,6 +21,7 @@ from typing import List, Dict, Any, Tuple, Optional
 
 import config
 from agents.voice import get_audio_duration_seconds
+from agents.transitions import get_transition_for_join
 from agents.subtitle_pro import (
     build_ass_from_script,
     split_lines_balanced,
@@ -57,7 +58,7 @@ def generate_subtitles_from_script(
     pre_pause: float = 0.8,
     post_pause: float = 1.5,
     use_crossfade: bool = True,
-    crossfade_dur: float = 0.5
+    crossfade_dur: float = 0.8
 ) -> Path:
     """
     Sinh file phụ đề .srt trực tiếp từ kịch bản gốc (script.json) chuẩn V2:
@@ -150,9 +151,12 @@ def assemble_final_video(
     post_pause = getattr(config, "SLIDE_POST_PAUSE", 1.5)
     draft_mode = getattr(config, "DRAFT_MODE", False)
     use_crossfade = (not draft_mode) and len(slides_data) > 1
+    trans_dur = getattr(config, "TRANSITION_DURATION", 0.8)
+    subtitles_enabled = getattr(config, "SUBTITLES_ENABLED", True)
+    current_fps = config.VIDEO_FPS if draft_mode else getattr(config, "VIDEO_FPS_FINAL", 30)
 
-    # 1. Sinh phụ đề chuyên nghiệp .ass V2 và .srt chuẩn
-    print(f"\n[*] Bước 1/2: Sinh phụ đề thuyết minh V2 (Crossfade={use_crossfade})...")
+    # 1. Sinh phụ đề chuyên nghiệp .ass V2 và .srt chuẩn (luôn sinh đầy đủ dù có bật hardsub hay không)
+    print(f"\n[*] Bước 1/2: Sinh phụ đề thuyết minh V2 (Crossfade={use_crossfade}, duration={trans_dur}s)...")
     ass_path = config.VIDEO_DIR / "final_lecture.ass"
     build_ass_from_script(
         slides_data=slides_data,
@@ -160,7 +164,7 @@ def assemble_final_video(
         pre_pause=pre_pause,
         post_pause=post_pause,
         use_crossfade=use_crossfade,
-        crossfade_dur=0.5
+        crossfade_dur=trans_dur
     )
 
     # Đồng thời xuất file .srt chuẩn phục vụ xuất bản / LMS
@@ -170,7 +174,7 @@ def assemble_final_video(
         pre_pause=pre_pause,
         post_pause=post_pause,
         use_crossfade=use_crossfade,
-        crossfade_dur=0.5
+        crossfade_dur=trans_dur
     )
 
     # Chuẩn bị đường dẫn ASS và fontsdir an toàn cho FFmpeg
@@ -178,9 +182,11 @@ def assemble_final_video(
     fonts_dir_path = config.PROJECT_ROOT / "fonts"
     fonts_opt = f":fontsdir='{str(fonts_dir_path.resolve()).replace('\\', '/').replace(':', '\\:')}'" if fonts_dir_path.exists() else ""
 
+    sub_status_label = "BẬT (hardsub .ass V2)" if subtitles_enabled else "TẮT (--no-subtitles, tạm thời)"
+
     # 2. Xử lý video và audio
     if use_crossfade:
-        print("\n[*] Bước 2/2: Thực hiện 1 lần encode duy nhất (xfade 0.5s + fade in/out 0.3s + hardsub V2 + loudnorm)...")
+        print(f"\n[*] Bước 2/2: Thực hiện 1 lần encode duy nhất ({current_fps}fps, xfade {trans_dur}s, fade-in đầu slide 0.3s, Phụ đề: {sub_status_label}, loudnorm)...")
         slide_video_paths = []
         slide_durs = []
         for item in slides_data:
@@ -189,6 +195,9 @@ def assemble_final_video(
             slide_video_paths.append(v_p)
             dur = get_audio_duration_seconds(v_p)
             slide_durs.append(dur)
+
+        total_joins = len(slide_video_paths) - 1
+        slide_starts = [0.0]
 
         # Xây dựng lệnh FFmpeg duy nhất
         cmd_single = ["ffmpeg", "-y"]
@@ -202,21 +211,32 @@ def assemble_final_video(
         running_dur = slide_durs[0]
 
         for i in range(1, len(slide_video_paths)):
-            offset = max(0.1, running_dur - 0.5)
+            trans_name = get_transition_for_join(i, total_joins)
+            offset = max(0.1, running_dur - trans_dur)
             out_v = f"v{i}"
             out_a = f"a{i}"
-            v_filters.append(f"[{last_v}][{i}:v]xfade=transition=fade:duration=0.5:offset={offset:.2f}[{out_v}]")
-            a_filters.append(f"[{last_a}][{i}:a]acrossfade=d=0.5[{out_a}]")
+            v_filters.append(f"[{last_v}][{i}:v]xfade=transition={trans_name}:duration={trans_dur}:offset={offset:.2f}[{out_v}]")
+            a_filters.append(f"[{last_a}][{i}:a]acrossfade=d={trans_dur}[{out_a}]")
+            print(f"    - Điểm nối {i}/{total_joins}: Kiểu '{trans_name}', duration {trans_dur}s, offset {offset:.2f}s")
             running_dur = offset + slide_durs[i]
+            slide_starts.append(offset)
             last_v = out_v
             last_a = out_a
 
         fade_out_st = max(0.0, running_dur - 0.3)
 
-        # Chuỗi filter hoàn thiện V2: xfade -> fade in/out -> hardsub .ass (KHÔNG hộp nền, KHÔNG gradient đáy)
-        v_filters.append(
-            f"[{last_v}]fade=t=in:st=0:d=0.3,fade=t=out:st={fade_out_st:.2f}:d=0.3,subtitles='{ass_escaped}'{fonts_opt}[v_final]"
-        )
+        # Chuỗi fade: fade-in 0.3s đầu video + fade-in nhẹ 0.3s sau mỗi điểm nối + fade-out 0.3s cuối video
+        fade_chain = [f"fade=t=in:st=0:d=0.3"]
+        for st in slide_starts[1:]:
+            fade_chain.append(f"fade=t=in:st={st:.2f}:d=0.3:enable='between(t,{st:.2f},{st+0.3:.2f})'")
+        fade_chain.append(f"fade=t=out:st={fade_out_st:.2f}:d=0.3")
+
+        # Điều kiện chèn phụ đề: Nếu SUBTITLES_ENABLED=False thì bỏ qua hardsub .ass
+        if subtitles_enabled:
+            fade_chain.append(f"subtitles='{ass_escaped}'{fonts_opt}")
+
+        v_finish = ",".join(fade_chain)
+        v_filters.append(f"[{last_v}]{v_finish}[v_final]")
         a_filters.append(
             f"[{last_a}]loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=in:st=0:d=0.3,afade=t=out:st={fade_out_st:.2f}:d=0.3[a_final]"
         )
@@ -225,6 +245,7 @@ def assemble_final_video(
         cmd_single.extend([
             "-filter_complex", fc_single,
             "-map", "[v_final]", "-map", "[a_final]",
+            "-r", str(current_fps),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
             "-c:a", "aac", "-b:a", "192k",
             str(final_video.resolve())
@@ -232,15 +253,16 @@ def assemble_final_video(
 
         try:
             subprocess.run(cmd_single, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
-            print(f"[+] Encode duy nhất hoàn tất thành công: {final_video.name} ({running_dur:.1f}s)")
+            print(f"[+] Encode duy nhất hoàn tất thành công: {final_video.name} ({running_dur:.1f}s @ {current_fps}fps)")
         except subprocess.CalledProcessError as e:
             err_text = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
-            print(f"[!] Lỗi xfade encode duy nhất: {err_text[:250]}")
-            print("[*] Chuyển sang phương án dự phòng concat copy...")
-            use_crossfade = False
+            print(f"\n[X] LỖI NGHIÊM TRỌNG: xfade encode thất bại ở bản cuối!\n{err_text}")
+            err_log = config.VIDEO_DIR / "xfade_error.log"
+            err_log.write_text(err_text, encoding="utf-8")
+            raise RuntimeError(f"xfade encode thất bại ở bản cuối. Chi tiết lỗi đã ghi vào {err_log.resolve()}")
 
     if not use_crossfade:
-        print("\n[*] Bước 2/2: Nối các slide (Concat Demuxer) & Hardsub phụ đề V2...")
+        print(f"\n[*] Bước 2/2: Nối các slide (Concat Demuxer, Hard cut) & Phụ đề: {sub_status_label}...")
         concat_list_file = config.VIDEO_DIR / "concat_list.txt"
         with open(concat_list_file, "w", encoding="utf-8") as f:
             for item in slides_data:
@@ -262,11 +284,17 @@ def assemble_final_video(
         total_final_dur = get_audio_duration_seconds(raw_concat_video)
         fade_out_st = max(0.0, total_final_dur - 0.3)
 
+        if subtitles_enabled:
+            vf_concat = f"fade=t=in:st=0:d=0.3,fade=t=out:st={fade_out_st:.2f}:d=0.3,subtitles='{ass_escaped}'{fonts_opt}"
+        else:
+            vf_concat = f"fade=t=in:st=0:d=0.3,fade=t=out:st={fade_out_st:.2f}:d=0.3"
+
         cmd_final = [
             "ffmpeg", "-y",
             "-i", str(raw_concat_video.resolve()),
-            "-vf", f"fade=t=in:st=0:d=0.3,fade=t=out:st={fade_out_st:.2f}:d=0.3,subtitles='{ass_escaped}'{fonts_opt}",
+            "-vf", vf_concat,
             "-af", f"loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=in:st=0:d=0.3,afade=t=out:st={fade_out_st:.2f}:d=0.3",
+            "-r", str(current_fps),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast",
             "-c:a", "aac", "-b:a", "192k",
             str(final_video.resolve())
@@ -276,8 +304,8 @@ def assemble_final_video(
             subprocess.run(cmd_final, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError as e:
             err_text = e.stderr.decode('utf-8', errors='replace') if isinstance(e.stderr, bytes) else str(e.stderr)
-            print(f"[!] Lỗi khi hardsub phụ đề: {err_text[:250]}")
-            print("[*] Fallback: Chuẩn hóa âm lượng EBU R128 không hardsub...")
+            print(f"[!] Lỗi khi xử lý video concat: {err_text[:250]}")
+            print("[*] Fallback: Chuẩn hóa âm lượng EBU R128 không qua filter phức tạp...")
             cmd_fallback = [
                 "ffmpeg", "-y",
                 "-i", str(raw_concat_video.resolve()),
@@ -306,6 +334,7 @@ def assemble_final_video(
         "final_video": final_video_rel,
         "final_srt": final_srt_rel,
         "final_ass": final_ass_rel,
+        "subtitles_enabled": subtitles_enabled,
         "timestamp": time.time(),
         "slides": slides_data
     }
@@ -315,4 +344,5 @@ def assemble_final_video(
     print(f"\n🎉 HOÀN THÀNH: Video bài giảng V2 hoàn chỉnh đã xuất tại:\n   -> {final_video.resolve()}")
     print(f"📄 Phụ đề ASS V2: {ass_path.resolve()}")
     print(f"📄 Phụ đề SRT V2: {final_srt.resolve()}")
+    print(f"💬 Trạng thái phụ đề: {sub_status_label}")
     return final_video, final_srt
