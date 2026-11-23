@@ -37,6 +37,8 @@ def get_zerotts_instance():
             providers.append("DmlExecutionProvider")
         providers.append("CPUExecutionProvider")
 
+        print(f"[*] ONNX providers: {providers}")
+
         hw = config.get_hardware_device_info()
         dev_label = hw["device_name"] if hw["is_gpu"] else "CPU Đa Luồng"
         model_name = getattr(config, "ZEROTTS_MODEL", "zeroweight-ai/ZeroTTS")

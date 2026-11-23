@@ -136,8 +136,30 @@ def main():
     print(f"⚡ Human Review    : {'TẮT (--auto)' if args.auto else 'BẬT (Chờ duyệt kịch bản)'}")
     print(f"🔄 Checkpoint Mode : {'RESET từ đầu (--reset)' if args.reset else 'Tiếp tục từ checkpoint nếu có'}")
     hw = config.get_hardware_device_info()
-    print(f"🖥️ Thiết bị        : {hw['device_name']} ({'Tăng tốc phần cứng' if hw['is_gpu'] else 'CPU'})")
+    providers = hw.get("providers", [])
+    if hw["is_gpu"] and "CUDAExecutionProvider" in providers:
+        tts_device_summary = f"CUDA ({hw['device_name']}) — onnxruntime-gpu"
+    elif hw["is_gpu"]:
+        tts_device_summary = f"{hw['device_name']} — onnxruntime"
+    else:
+        tts_device_summary = "CPU — onnxruntime (bản CPU, cân nhắc đổi sang onnxruntime-gpu nếu có GPU NVIDIA)"
+
+    print(f"🖥️ Thiết bị TTS    : {tts_device_summary}")
     print("=" * 70)
+
+    # Cảnh báo nếu phát hiện GPU NVIDIA nhưng ONNX thiếu CUDA provider
+    if "CUDAExecutionProvider" not in providers:
+        has_nvidia = False
+        try:
+            import subprocess
+            chk = subprocess.run(["nvidia-smi"], capture_output=True, timeout=3)
+            if chk.returncode == 0:
+                has_nvidia = True
+        except Exception:
+            pass
+        if has_nvidia:
+            print("[!] CẢNH BÁO: Phát hiện GPU NVIDIA nhưng onnxruntime không có CUDA provider — đang chạy CPU.")
+            print("    -> Chạy lệnh: pip uninstall onnxruntime -y && pip install onnxruntime-gpu\n")
 
     try:
         from agents.graph import run_pipeline

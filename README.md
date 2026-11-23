@@ -89,7 +89,8 @@ AI_Video_Agent_V2/
 
 ## 🚀 Hướng Dẫn Cài Đặt & Sử Dụng
 
-### 1. Cài đặt môi trường
+### 1. Cài đặt môi trường & Tăng tốc GPU CUDA (ZeroTTS)
+
 ```bash
 # Cài đặt các thư viện phụ thuộc
 pip install -r requirements.txt
@@ -97,6 +98,32 @@ pip install -r requirements.txt
 # Trên hệ điều hành Windows (cần thiết cho PowerPoint COM)
 pip install -r requirements-windows.txt
 ```
+
+#### Hướng dẫn cấu hình ONNX Runtime GPU:
+> [!IMPORTANT]
+> Gói `onnxruntime` (bản CPU) và `onnxruntime-gpu` (bản GPU) **không thể cài đặt chung**. Khi nâng cấp hoặc chuyển đổi, bắt buộc phải gỡ bản cũ trước:
+
+1. **Kiểm tra phiên bản CUDA bằng lệnh `nvidia-smi`:**
+   ```bash
+   nvidia-smi
+   ```
+2. **Cài đặt phiên bản `onnxruntime-gpu` tương thích:**
+   * **CUDA 12.x / 13.x** (Driver NVIDIA từ 2023 trở lại đây, `nvidia-smi` báo CUDA 12.x / 13.x):
+     ```bash
+     pip uninstall onnxruntime -y
+     pip install onnxruntime-gpu>=1.20
+     ```
+   * **CUDA 11.8** (`nvidia-smi` báo CUDA Version 11.8):
+     ```bash
+     pip uninstall onnxruntime -y
+     pip install onnxruntime-gpu==1.19.2
+     ```
+   * **Máy không có GPU NVIDIA:** Giữ nguyên `onnxruntime` bản CPU (`pip install onnxruntime`), hệ thống sẽ tự động chạy CPU an toàn mà không cần GPU.
+3. **Kiểm tra xác nhận CUDA Provider:**
+   ```bash
+   python -c "import onnxruntime as ort; print(ort.get_available_providers())"
+   ```
+   Danh sách trả về phải chứa `'CUDAExecutionProvider'`.
 
 ### 2. Cấu hình biến môi trường
 Tạo file `.env` từ `.env.example`:

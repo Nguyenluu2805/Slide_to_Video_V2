@@ -187,14 +187,36 @@ SUBTITLE_OUTLINE = float(os.getenv("SUBTITLE_OUTLINE", "1.4"))
 SUBTITLE_SHADOW = float(os.getenv("SUBTITLE_SHADOW", "0.8"))
 SUBTITLE_MARGIN_V = int(os.getenv("SUBTITLE_MARGIN_V", "100"))
 
-# 5. Hàm kiểm tra thiết bị phần cứng thực tế (Không báo khống)
+# 5. Hàm kiểm tra thiết bị phần cứng thực tế từ ONNX Runtime (Không báo khống)
 def get_hardware_device_info() -> dict:
-    """Trả về thông tin thiết bị thực tế (CPU hoặc GPU CUDA)."""
+    """
+    Trả về thông tin thiết bị thực tế dựa trên ONNX Runtime providers:
+    - CUDAExecutionProvider -> device: "cuda", device_name: GPU name từ nvidia-smi hoặc "CUDA GPU"
+    - DmlExecutionProvider  -> device: "dml", device_name: "DirectML GPU"
+    - CPU                   -> device: "cpu", device_name: "CPU"
+    """
     try:
-        import torch
-        if torch.cuda.is_available():
-            dev_name = torch.cuda.get_device_name(0)
-            return {"device": "cuda", "device_name": dev_name, "is_gpu": True}
+        import onnxruntime as ort
+        providers = ort.get_available_providers()
+        if "CUDAExecutionProvider" in providers:
+            gpu_name = "CUDA GPU"
+            try:
+                import subprocess
+                res = subprocess.run(
+                    ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if res.returncode == 0 and res.stdout.strip():
+                    gpu_name = res.stdout.strip().split("\n")[0].strip()
+            except Exception:
+                pass
+            return {"device": "cuda", "device_name": gpu_name, "is_gpu": True, "providers": providers}
+        elif "DmlExecutionProvider" in providers:
+            return {"device": "dml", "device_name": "DirectML GPU", "is_gpu": True, "providers": providers}
+        else:
+            return {"device": "cpu", "device_name": "CPU", "is_gpu": False, "providers": providers}
     except Exception:
         pass
-    return {"device": "cpu", "device_name": "CPU", "is_gpu": False}
+    return {"device": "cpu", "device_name": "CPU", "is_gpu": False, "providers": []}
